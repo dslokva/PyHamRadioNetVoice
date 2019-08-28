@@ -81,9 +81,9 @@ class AudioRecorder():
                                        output_device_index=self.audioOut.get_default_output_device_info()["index"],
                                        frames_per_buffer=frames_per_buffer)
 
+        codec = OpusCodec()
         for i in range(sys.maxsize ** 10):
             try:
-                codec = OpusCodec()
                 data = stream.read(frames_per_buffer, exception_on_overflow=False)
 
                 opusencoded_data = codec.encode(data)
