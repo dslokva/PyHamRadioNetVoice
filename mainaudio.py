@@ -1,9 +1,9 @@
 __author__ = '@sldmk'
 
-import sys
+
 import opuslib
 import pyaudio
-import traceback
+from pyaudio import Stream
 from opuslib.api import encoder as opus_encoder
 from opuslib.api import decoder as opus_decoder
 from opuslib.api import ctl
@@ -30,11 +30,8 @@ channels = 1
 rate = 48000
 opus_frame_size = 3840
 
-rawdatalen = 0
-opusdatalen = 0
-
-class OpusCodec():
-    def __init__(self, *args, **kwargs):
+class OpusCodec:
+    def __init__(self):
         self.decoder = opus_decoder.create_state(rate, channels)
         self.encoder = opus_encoder.create_state(rate, channels, opuslib.APPLICATION_VOIP)
 
@@ -43,7 +40,7 @@ class OpusCodec():
         opus_encoder.encoder_ctl(self.encoder, ctl.set_bitrate, 24000)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_inband_fec, 1)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_packet_loss_perc, 10)
-        # opus_encoder.encoder_ctl(self.encoder, ctl.set_vbr, 0)
+        opus_encoder.encoder_ctl(self.encoder, ctl.set_vbr, 1)
 
     def encode(self, data):
         out = opus_encoder.encode(self.encoder, data, opus_frame_size, len(data))
@@ -53,21 +50,28 @@ class OpusCodec():
         out = opus_decoder.decode(self.decoder, data, len(data), opus_frame_size, False, channels)
         return out
 
-
-class AudioRecorder():
+class AudioRecorder:
     def __init__(self):
         self.audioIn = pyaudio.PyAudio()
         self.audioOut = pyaudio.PyAudio()
         self.info = self.audioIn.get_host_api_info_by_index(0)
         self.numdevices = self.info.get('deviceCount')
-        self.recordingIsActive = False
+        self.isRecordingActive = False
+        self.rawBytesCount = 0
+        self.opusBytesCount = 0
+
+        # Initialize streams
+        self.streamIn = Stream(self, rate=rate, channels=channels, format=pyaudio.paInt16, input=True, output=False)
+        self.streamIn.stop_stream()
+        self.streamOut = Stream(self, rate=rate, channels=channels, format=pyaudio.paInt16, input=False, output=True)
+        self.streamOut.stop_stream()
 
     def getAudioOutputDevices(self):
         devices = {}
         for i in range(0, self.numdevices):
             devOut = self.audioIn.get_device_info_by_host_api_device_index(0, i)
             if (devOut.get('maxOutputChannels')) > 0:
-                d = {devOut.get('index') : devOut.get('name')}
+                d = {devOut.get('index'): devOut.get('name')}
                 devices.update(d)
         return devices
 
@@ -76,7 +80,7 @@ class AudioRecorder():
         for i in range(0, self.numdevices):
             devIn = self.audioIn.get_device_info_by_host_api_device_index(0, i)
             if (devIn.get('maxInputChannels')) > 0:
-                d = {devIn.get('index') : devIn.get('name')}
+                d = {devIn.get('index'): devIn.get('name')}
                 devices.update(d)
         return devices
 
@@ -86,47 +90,59 @@ class AudioRecorder():
     def getDefaultAudioOutDeviceIndex(self):
         return self.audioOut.get_default_output_device_info()["index"]
 
-    def startRec(self):
-        self.recordingIsActive = True
-        recThread = threading.Thread(target=self.recordingThread, args=())
+    def startRec(self, idxDevIn, idxDevOut):
+        self.isRecordingActive = True
+        recThread = threading.Thread(target=self.transcodingThread, args=(idxDevIn, idxDevOut))
         recThread.start()
+        threading.Timer(1.0, self.periodicStatsClear).start()
 
     def stopRec(self):
-        self.recordingIsActive = False
+        self.isRecordingActive = False
+        self.rawBytesCount = 0
+        self.opusBytesCount = 0
 
-    def recordingThread(self):
-        stream = self.audioIn.open(format=pyaudio.paInt16, channels=channels,
-                                   rate=rate, input_device_index=1, input=True, output=False,
-                                   frames_per_buffer=frames_per_buffer)
+    def updateStats(self, rawBytesCount, opusBytesCount):
+        self.rawBytesCount += rawBytesCount
+        self.opusBytesCount += opusBytesCount
 
-        streamout = self.audioOut.open(format=pyaudio.paInt16, channels=channels,
-                                       rate=rate, input=False, output=True,
-                                       output_device_index=self.audioOut.get_default_output_device_info()["index"],
-                                       frames_per_buffer=frames_per_buffer)
+    def periodicStatsClear(self):
+        # print("data stats 1 sec, raw: ", self.rawBytesCount, "opus data: ", self.opusBytesCount)
+        self.rawBytesCount = 0
+        self.opusBytesCount = 0
+        t = threading.Timer(1, self.periodicStatsClear)
+        if self.isRecordingActive is True:
+            t.start()
 
+    def transcodingThread(self, idxDevIn, idxDevOut):
+        self.streamIn = self.audioIn.open(format=pyaudio.paInt16, channels=channels,
+                                          rate=rate, input_device_index=idxDevIn, input=True, output=False,
+                                          frames_per_buffer=frames_per_buffer)
+        if idxDevOut > -1:
+            self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=channels,
+                                                rate=rate, input=False, output=True,
+                                                output_device_index=idxDevOut,
+                                                frames_per_buffer=frames_per_buffer)
         codec = OpusCodec()
 
-        while self.recordingIsActive:
-            data = stream.read(frames_per_buffer, exception_on_overflow=False)
-
+        while self.isRecordingActive:
+            data = self.streamIn.read(frames_per_buffer, exception_on_overflow=False)
             opusencoded_data = codec.encode(data)
             opusdecoded_data = codec.decode(opusencoded_data)
 
-            streamout.write(opusdecoded_data)
-            # streamout.write(data)
+            if idxDevOut > -1:
+                self.streamOut.write(opusdecoded_data)
 
-            print("WAW_ORIG: ", len(data),
-                  "OPUS_ENCODE: ", len(opusencoded_data),
-                  "OPUS_DECODE: ", len(opusdecoded_data))
+            self.updateStats(len(data), len(opusencoded_data))
 
-        if not self.recordingIsActive:
-            stream.stop_stream()
-            stream.close()
-            streamout.stop_stream()
-            streamout.close()
-            # self.audioIn.terminate()
-            # self.audioOut.terminate()
+        if not self.isRecordingActive:
+            self.streamIn.stop_stream()
+            self.streamIn.close()
 
-if __name__ == '__main__':
-    audiorec = AudioRecorder()
-    audiorec.startRec()
+            if self.streamOut is not None:
+                self.streamOut.stop_stream()
+                if self.streamOut.is_active():
+                    self.streamOut.close()
+
+# if __name__ == '__main__':
+#     audiorec = AudioRecorder()
+#     audiorec.startRec()
