@@ -94,7 +94,7 @@ class AudioRecorder:
         self.isRecordingActive = True
         recThread = threading.Thread(target=self.transcodingThread, args=(idxDevIn, idxDevOut))
         recThread.start()
-        threading.Timer(1.0, self.periodicStatsClear).start()
+        # threading.Timer(0.2, self.periodicStatsClear).start()
 
     def stopRec(self):
         self.isRecordingActive = False
@@ -106,10 +106,10 @@ class AudioRecorder:
         self.opusBytesCount += opusBytesCount
 
     def periodicStatsClear(self):
-        # print("data stats 1 sec, raw: ", self.rawBytesCount, "opus data: ", self.opusBytesCount)
+        print("data stats 1 sec, raw: ", self.rawBytesCount, "opus data: ", self.opusBytesCount)
         self.rawBytesCount = 0
         self.opusBytesCount = 0
-        t = threading.Timer(1, self.periodicStatsClear)
+        t = threading.Timer(0.2, self.periodicStatsClear)
         if self.isRecordingActive is True:
             t.start()
 
