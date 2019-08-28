@@ -127,9 +127,9 @@ class AudioRecorder:
         while self.isRecordingActive:
             data = self.streamIn.read(frames_per_buffer, exception_on_overflow=False)
             opusencoded_data = codec.encode(data)
-            opusdecoded_data = codec.decode(opusencoded_data)
 
             if idxDevOut > -1:
+                opusdecoded_data = codec.decode(opusencoded_data)
                 self.streamOut.write(opusdecoded_data)
 
             self.updateStats(len(data), len(opusencoded_data))
