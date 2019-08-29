@@ -1,13 +1,12 @@
-import threading
-
-from PyQt5.QtGui import QFont, QPalette, QColor
+from networkServer import NetworkServer
 
 __author__ = '@sldmk'
 
 import sys
-from mainaudio import AudioRecorder
+from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
-    QComboBox, QGridLayout, QCheckBox
+    QComboBox, QGridLayout, QCheckBox, QSpinBox
+from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
 
 class MainWindow(QWidget):
@@ -23,6 +22,8 @@ class MainWindow(QWidget):
         self.windowCenter()
         self.populateDeviceList()
 
+        self.networkServer = NetworkServer(self.spinServerPort.value())
+
     def initUI(self):
         self.setGeometry(0, 0, 450, 350)
         self.setWindowTitle('Voice Transcoder v 0.1')
@@ -33,6 +34,11 @@ class MainWindow(QWidget):
         exitButton.clicked.connect(self.exitBtnClick)
 
         labelInput = QLabel('Input device:')
+        labelSrvPort = QLabel('Server port:')
+        self.spinServerPort = QSpinBox()
+        self.spinServerPort.setMaximum(65535)
+        self.spinServerPort.setMinimum(1025)
+        self.spinServerPort.setValue(9518)
 
         labelEncodedDataTxt = QLabel('Encoded data to clients kBytes/sec: ')
         self.labelEncodedDataCount = QLabel('0')
@@ -72,6 +78,8 @@ class MainWindow(QWidget):
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
+        hbox.addWidget(labelSrvPort)
+        hbox.addWidget(self.spinServerPort)
         hbox.addWidget(self.startStopBtn)
         hbox.addWidget(exitButton)
 
@@ -84,8 +92,8 @@ class MainWindow(QWidget):
         self.show()
 
     def populateDeviceList(self):
-        self.devicesIn = audioRecorder.getAudioInputDevices()
-        self.devicesOut = audioRecorder.getAudioOutputDevices()
+        self.devicesIn = audioTranscoder.getAudioInputDevices()
+        self.devicesOut = audioTranscoder.getAudioOutputDevices()
 
         for dev in self.devicesIn:
             self.comboBoxInput.addItem(self.devicesIn.get(dev))
@@ -93,11 +101,11 @@ class MainWindow(QWidget):
         for dev in self.devicesOut:
             self.comboBoxOutput.addItem(self.devicesOut.get(dev))
 
-        index = self.comboBoxInput.findText(self.devicesIn.get(audioRecorder.getDefaultAudioInDeviceIndex()), Qt.MatchFixedString)
+        index = self.comboBoxInput.findText(self.devicesIn.get(audioTranscoder.getDefaultAudioInDeviceIndex()), Qt.MatchFixedString)
         if index >= 0:
             self.comboBoxInput.setCurrentIndex(index)
 
-        index = self.comboBoxInput.findText(self.devicesIn.get(audioRecorder.getDefaultAudioOutDeviceIndex()), Qt.MatchFixedString)
+        index = self.comboBoxInput.findText(self.devicesIn.get(audioTranscoder.getDefaultAudioOutDeviceIndex()), Qt.MatchFixedString)
         if index >= 0:
             self.comboBoxOutput.setCurrentIndex(index)
 
@@ -114,15 +122,23 @@ class MainWindow(QWidget):
         self.move(qtRectangle.topLeft())
 
     def exitBtnClick(self):
-        if audioRecorder.isRecordingActive:
+        if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
         sys.exit(0)
 
     def startStopBtnClick(self):
-        if audioRecorder.isRecordingActive:
+        if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
+            self.stopNetworkServer()
         else:
             self.startAudioTranscoding()
+            self.startNetworkServer()
+
+    def stopNetworkServer(self):
+        self.networkServer.stopTCPListener()
+
+    def startNetworkServer(self):
+        self.networkServer.startTCPListener()
 
     def updateWorkStats(self, **kwargs):
         opusBytes = kwargs.get('opusBytes', '0')
@@ -132,7 +148,7 @@ class MainWindow(QWidget):
         self.comboBoxOutput.setEnabled(self.chkBoxLivePlayback.isChecked())
 
     def stopAudioTranscoding(self):
-        audioRecorder.stopRec()
+        audioTranscoder.stopRec()
         self.startStopBtn.setText('Start')
 
     def startAudioTranscoding(self):
@@ -142,11 +158,11 @@ class MainWindow(QWidget):
         if self.chkBoxLivePlayback.isChecked():
             idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
 
-        audioRecorder.startRec(idxDevIn, idxDevOut)
+        audioTranscoder.startRec(idxDevIn, idxDevOut)
         self.startStopBtn.setText('Stop')
 
 if __name__ == '__main__':
-    audioRecorder = AudioRecorder()
+    audioTranscoder = AudioTranscoder()
     app = QApplication(sys.argv)
     ex = MainWindow()
     sys.exit(app.exec_())
