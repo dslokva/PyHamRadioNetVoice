@@ -1,17 +1,157 @@
+import random
+
 __author__ = '@sldmk'
 
+import sys
+from PyQt5.QtCore import Qt
 from threading import Thread
 import socket
 import pyaudio
 from pyaudio import Stream
 from OPUSCodecImpl import OpusCodec
+from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
+    QComboBox, QGridLayout, QSpinBox, QLineEdit
 
 
-class PlayStream:
+class MainWindow(QWidget):
     def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.windowCenter()
+        self.populateDeviceList()
+        self.devicesOut = None
+
+    def initUI(self):
+        self.setGeometry(0, 0, 450, 250)
+        self.setWindowTitle('Voice Transcoder client v 0.1')
+        self.startStopBtn = QPushButton("Connect and play!", self)
+        self.startStopBtn.clicked.connect(self.startStopBtnClick)
+
+        exitButton = QPushButton("Exit")
+        exitButton.clicked.connect(self.exitBtnClick)
+
+        self.labelSrvAddr = QLabel('Server address:')
+        self.labelSrvPort = QLabel('Server port:')
+
+        self.txtServerAddr = QLineEdit('192.168.1.103')
+        self.spinServerPort = QSpinBox()
+        self.spinServerPort.setMaximum(65535)
+        self.spinServerPort.setMinimum(1025)
+        self.spinServerPort.setValue(9518)
+
+        labelEncodedDataTxt = QLabel('Encoded data from server kBytes/sec: ')
+        self.labelEncodedDataCount = QLabel('0')
+
+        self.labelServerStatus = QLabel('Client is stopped')
+
+        self.labelOutput = QLabel('Output device: ')
+        self.comboBoxOutput = QComboBox(self)
+
+        grid = QGridLayout()
+        grid.setSpacing(6)
+
+        grid.addWidget(self.labelOutput, 0, 0)
+        grid.addWidget(self.comboBoxOutput, 0, 1, 1, 4)
+
+        grid.addWidget(QLabel(''), 1, 0)
+
+        grid.addWidget(self.labelSrvAddr, 2, 0, 1, 2)
+        grid.addWidget(self.txtServerAddr, 2, 2)
+
+        grid.addWidget(self.labelSrvPort, 3, 0, 1, 2)
+        grid.addWidget(self.spinServerPort, 3, 2)
+
+        grid.addWidget(labelEncodedDataTxt, 4, 0, 1, 2)
+        grid.addWidget(self.labelEncodedDataCount, 4, 2)
+
+        grid.addWidget(QLabel(''), 5, 0)
+
+        grid.addWidget(self.labelServerStatus, 6, 0, 1, 4)
+
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(self.startStopBtn)
+        hbox.addWidget(exitButton)
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(grid)
+        vbox.addStretch(1)
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
+        self.show()
+
+    def windowCenter(self):
+        qtRectangle = self.frameGeometry()
+        centerPoint = QDesktopWidget().availableGeometry().center()
+        qtRectangle.moveCenter(centerPoint)
+        self.move(qtRectangle.topLeft())
+
+    def populateDeviceList(self):
+        self.devicesOut = audioPlayer.getAudioOutputDevices()
+
+        for dev in self.devicesOut:
+            self.comboBoxOutput.addItem(self.devicesOut.get(dev))
+
+        index = self.comboBoxOutput.findText(self.devicesOut.get(audioPlayer.getDefaultAudioOutDeviceIndex()), Qt.MatchFixedString)
+        if index >= 0:
+            self.comboBoxOutput.setCurrentIndex(index)
+
+    def exitBtnClick(self):
+        if audioPlayer.isActive:
+            self.stopAudioTranscoding()
+        sys.exit(0)
+
+    def startStopBtnClick(self):
+        if audioPlayer.isActive:
+            self.stopAudioPlaying()
+            self.startStopBtn.setText('Start')
+        else:
+            self.startAudioPlaying()
+            self.startStopBtn.setText('Stop')
+        self.spinServerPort.setEnabled(not audioPlayer.isActive)
+        self.labelOutput.setEnabled(not audioPlayer.isActive)
+        self.labelSrvPort.setEnabled(not audioPlayer.isActive)
+
+    def startAudioPlaying(self):
+        self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value())
+        audioPlayer.startRecv()
+        pass
+
+    def stopAudioPlaying(self):
+        audioPlayer.stopRecv()
+        pass
+
+    def connectToServer(self, address, port):
+        try:
+            # Create a socket connection for connecting to the server:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((address, port))
+
+            # send hello to server
+            initialHello = socket.gethostname() + ('|type=hello|version=1.0')
+            client_socket.send(initialHello.encode())
+
+            # receive server first reply
+            reply = client_socket.recv(1024).decode()
+            print(reply)
+            random.seed()
+            udpPort = random.randint(10000, 65535)
+            selectedUDPPort = 'udpport=' + str(udpPort)
+            client_socket.send(selectedUDPPort.encode())
+        except socket.error as err:
+            self.labelServerStatus.setText(err.strerror)
+
+class StreamAudioPlayer:
+    def __init__(self):
+        self.isActive = False
         self.audioOut = pyaudio.PyAudio()
+        self.info = self.audioOut.get_host_api_info_by_index(0)
+        self.numdevices = self.info.get('deviceCount')
+
         self.streamOut = Stream(self, rate=48000, channels=1, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
+
         self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840)
         self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
                                             rate=48000, input=False, output=True,
@@ -20,37 +160,41 @@ class PlayStream:
 
     def startRecv(self):
         chunk = 3840
+        self.isActive = True
         Thread(target=self.udpStream, args=(chunk,)).start()
+
+    def stopRecv(self):
+        self.isActive = False
 
     def udpStream(self, chunk):
         udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp.bind(("192.168.1.103", 12345))
 
-        while True:
+        while self.isActive:
             soundData, addr = udp.recvfrom(chunk)
             if len(soundData) > 100:
                 print("Data size: ", len(soundData))
                 opusdecoded_data = self.codec.decode(soundData)
                 self.streamOut.write(opusdecoded_data)
 
+    def getDefaultAudioOutDeviceIndex(self):
+        return self.audioOut.get_default_output_device_info()["index"]
 
-port = 9518
-ip = "192.168.1.103"
+    def getAudioOutputDevices(self):
+        devices = {}
+        for i in range(0, self.numdevices):
+            devOut = self.audioOut.get_device_info_by_host_api_device_index(0, i)
+            if (devOut.get('maxOutputChannels')) > 0:
+                d = {devOut.get('index'): devOut.get('name')}
+                devices.update(d)
+        return devices
 
-# Create a socket connection for connecting to the server:
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((ip, port))
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    audioPlayer = StreamAudioPlayer()
+    ex = MainWindow()
+    sys.exit(app.exec_())
 
-# send hello to server
-initialHello = socket.gethostname()+('|type=hello|version=1.0')
-client_socket.send(initialHello.encode())
 
-# receive server first reply
-reply = client_socket.recv(1024).decode()
-print(reply)
-selectedUDPPort = 'udpport=12345'
-client_socket.send(selectedUDPPort.encode())
-playstream = PlayStream()
-playstream.startRecv()
 
 

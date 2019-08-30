@@ -52,7 +52,7 @@ class AudioTranscoder:
     def getAudioOutputDevices(self):
         devices = {}
         for i in range(0, self.numdevices):
-            devOut = self.audioIn.get_device_info_by_host_api_device_index(0, i)
+            devOut = self.audioOut.get_device_info_by_host_api_device_index(0, i)
             if (devOut.get('maxOutputChannels')) > 0:
                 d = {devOut.get('index'): devOut.get('name')}
                 devices.update(d)

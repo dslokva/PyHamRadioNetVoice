@@ -7,8 +7,8 @@ from threading import Thread
 import socket
 
 class NetworkServer:
-    def __init__(self, port):
-        self.port = port
+    def __init__(self):
+        self.port = 9518
         self.isServerActive = False
         self.transcoder = None
         self.UDPSockets = {}
@@ -24,8 +24,9 @@ class NetworkServer:
         self.server_socket.close()
         self.updateServerStatus("Server is stopped", self.redColorPalette)
 
-    def startTCPListener(self):
+    def startTCPListener(self, port):
         self.isServerActive = True
+        self.port = port
         tcpListenerThread = Thread(target=self.TCPListener)
         tcpListenerThread.setDaemon(True)
         tcpListenerThread.start()

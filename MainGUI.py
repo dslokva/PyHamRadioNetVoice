@@ -4,19 +4,19 @@ import sys
 from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
     QComboBox, QGridLayout, QCheckBox, QSpinBox
-from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
 from networkServer import NetworkServer
 
 class MainWindow(QWidget):
-
     def __init__(self):
         super().__init__()
         self.initUI()
         self.windowCenter()
         self.populateDeviceList()
+        self.devicesIn = None
+        self.devicesOut = None
 
-        self.networkServer = NetworkServer(self.spinServerPort.value())
+        self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
         self.networkServer.setClientCountLabel(self.labelClientsCount)
         self.networkServer.setServerStatusLabel(self.labelServerStatus)
@@ -24,7 +24,7 @@ class MainWindow(QWidget):
 
     def initUI(self):
         self.setGeometry(0, 0, 450, 350)
-        self.setWindowTitle('Voice Transcoder v 0.1')
+        self.setWindowTitle('Voice Transcoder server v 0.1')
         self.startStopBtn = QPushButton("Start", self)
         self.startStopBtn.clicked.connect(self.startStopBtnClick)
 
@@ -32,7 +32,7 @@ class MainWindow(QWidget):
         exitButton.clicked.connect(self.exitBtnClick)
 
         labelInput = QLabel('Input device:')
-        labelSrvPort = QLabel('Server port:')
+        self.labelSrvPort = QLabel('Server port:')
         self.spinServerPort = QSpinBox()
         self.spinServerPort.setMaximum(65535)
         self.spinServerPort.setMinimum(1025)
@@ -75,7 +75,7 @@ class MainWindow(QWidget):
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
-        hbox.addWidget(labelSrvPort)
+        hbox.addWidget(self.labelSrvPort)
         hbox.addWidget(self.spinServerPort)
         hbox.addWidget(self.startStopBtn)
         hbox.addWidget(exitButton)
@@ -121,6 +121,7 @@ class MainWindow(QWidget):
     def exitBtnClick(self):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
+            self.stopNetworkServer()
         sys.exit(0)
 
     def startStopBtnClick(self):
@@ -134,6 +135,7 @@ class MainWindow(QWidget):
             self.startStopBtn.setText('Stop')
         self.spinServerPort.setEnabled(not audioTranscoder.isRecordingActive)
         self.chkBoxLivePlayback.setEnabled(not audioTranscoder.isRecordingActive)
+        self.labelSrvPort.setEnabled(not audioTranscoder.isRecordingActive)
 
     def stopNetworkServer(self):
         self.networkServer.stopTCPListener()
