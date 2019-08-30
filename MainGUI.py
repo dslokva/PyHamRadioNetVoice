@@ -12,9 +12,9 @@ class MainWindow(QWidget):
         super().__init__()
         self.initUI()
         self.windowCenter()
-        self.populateDeviceList()
         self.devicesIn = None
         self.devicesOut = None
+        self.populateDeviceList()
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
@@ -141,7 +141,7 @@ class MainWindow(QWidget):
         self.networkServer.stopTCPListener()
 
     def startNetworkServer(self):
-        self.networkServer.startTCPListener()
+        self.networkServer.startTCPListener(self.spinServerPort.value())
 
     def updateWorkStats(self, **kwargs):
         opusBytes = kwargs.get('opusBytes', '0')

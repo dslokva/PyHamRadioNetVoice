@@ -37,7 +37,6 @@ class NetworkServer:
         self.server_socket.listen(5)
         self.updateServerStatus("Server is ready and waiting for clients at " + self.get_default_ip_address() + ":" + str(self.port), self.greenColorPalette)
 
-        # print("Server is ready and waiting for clients at", self.get_default_ip_address(), ":", self.port)
         while self.isServerActive:
             try:
                 client_socket, address = self.server_socket.accept()

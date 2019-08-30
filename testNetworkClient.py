@@ -10,7 +10,7 @@ import pyaudio
 from pyaudio import Stream
 from OPUSCodecImpl import OpusCodec
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
-    QComboBox, QGridLayout, QSpinBox, QLineEdit
+    QComboBox, QGridLayout, QSpinBox, QLineEdit, QCheckBox
 
 
 class MainWindow(QWidget):
@@ -30,8 +30,8 @@ class MainWindow(QWidget):
         exitButton = QPushButton("Exit")
         exitButton.clicked.connect(self.exitBtnClick)
 
-        self.labelSrvAddr = QLabel('Server address:')
-        self.labelSrvPort = QLabel('Server port:')
+        self.labelServerAddr = QLabel('Server address:')
+        self.labelServerPort = QLabel('Server port:')
 
         self.txtServerAddr = QLineEdit('192.168.1.103')
         self.spinServerPort = QSpinBox()
@@ -39,10 +39,20 @@ class MainWindow(QWidget):
         self.spinServerPort.setMinimum(1025)
         self.spinServerPort.setValue(9518)
 
+        self.chkBoxfixedClientPort = QCheckBox('Fixed client UDP port:')
+        self.chkBoxfixedClientPort.stateChanged.connect(self.chkBoxfixedClientPortClick)
+
+        self.spinClientPort = QSpinBox()
+        self.spinClientPort.setMaximum(65535)
+        self.spinClientPort.setMinimum(1025)
+        random.seed()
+        self.spinClientPort.setValue(random.randint(10000, 65535))
+        self.spinClientPort.setEnabled(False)
+
         labelEncodedDataTxt = QLabel('Encoded data from server kBytes/sec: ')
         self.labelEncodedDataCount = QLabel('0')
 
-        self.labelServerStatus = QLabel('Client is stopped')
+        self.labelClientStatus = QLabel('Client is stopped')
 
         self.labelOutput = QLabel('Output device: ')
         self.comboBoxOutput = QComboBox(self)
@@ -55,18 +65,23 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 1, 0)
 
-        grid.addWidget(self.labelSrvAddr, 2, 0, 1, 2)
+        grid.addWidget(self.labelServerAddr, 2, 0, 1, 2)
         grid.addWidget(self.txtServerAddr, 2, 2)
 
-        grid.addWidget(self.labelSrvPort, 3, 0, 1, 2)
+        grid.addWidget(self.labelServerPort, 3, 0, 1, 2)
         grid.addWidget(self.spinServerPort, 3, 2)
 
-        grid.addWidget(labelEncodedDataTxt, 4, 0, 1, 2)
-        grid.addWidget(self.labelEncodedDataCount, 4, 2)
+        grid.addWidget(self.chkBoxfixedClientPort, 4, 0, 1, 2)
+        grid.addWidget(self.spinClientPort, 4, 2)
 
         grid.addWidget(QLabel(''), 5, 0)
 
-        grid.addWidget(self.labelServerStatus, 6, 0, 1, 4)
+        grid.addWidget(labelEncodedDataTxt, 6, 0, 1, 2)
+        grid.addWidget(self.labelEncodedDataCount, 6, 2)
+
+        grid.addWidget(QLabel(''), 7, 0)
+
+        grid.addWidget(self.labelClientStatus, 8, 0, 1, 4)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -80,6 +95,9 @@ class MainWindow(QWidget):
 
         self.setLayout(vbox)
         self.show()
+
+    def chkBoxfixedClientPortClick(self):
+        self.spinClientPort.setEnabled(self.chkBoxfixedClientPort.isChecked())
 
     def windowCenter(self):
         qtRectangle = self.frameGeometry()
@@ -109,17 +127,23 @@ class MainWindow(QWidget):
         else:
             self.startAudioPlaying()
             self.startStopBtn.setText('Stop')
-        self.spinServerPort.setEnabled(not audioPlayer.isActive)
         self.labelOutput.setEnabled(not audioPlayer.isActive)
-        self.labelSrvPort.setEnabled(not audioPlayer.isActive)
+        self.comboBoxOutput.setEnabled(not audioPlayer.isActive)
+        self.labelServerAddr.setEnabled(not audioPlayer.isActive)
+        self.txtServerAddr.setEnabled(not audioPlayer.isActive)
+        self.labelServerPort.setEnabled(not audioPlayer.isActive)
+        self.spinServerPort.setEnabled(not audioPlayer.isActive)
+        self.chkBoxfixedClientPort.setEnabled(not audioPlayer.isActive and self.chkBoxfixedClientPort.isChecked())
 
     def startAudioPlaying(self):
-        self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value())
-        audioPlayer.startRecv()
+        if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()):
+            audioPlayer.startRecv()
+
         pass
 
     def stopAudioPlaying(self):
         audioPlayer.stopRecv()
+        self.labelClientStatus.setText('Client is stopped')
         pass
 
     def connectToServer(self, address, port):
@@ -139,8 +163,11 @@ class MainWindow(QWidget):
             udpPort = random.randint(10000, 65535)
             selectedUDPPort = 'udpport=' + str(udpPort)
             client_socket.send(selectedUDPPort.encode())
+            self.labelClientStatus.setText('Connected to server: '+address)
+            return True
         except socket.error as err:
-            self.labelServerStatus.setText(err.strerror)
+            self.labelClientStatus.setText(err.strerror)
+            return False
 
 class StreamAudioPlayer:
     def __init__(self):
