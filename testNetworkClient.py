@@ -15,7 +15,7 @@ class PlayStream:
         self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840)
         self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
                                             rate=48000, input=False, output=True,
-                                            output_device_index=4,
+                                            output_device_index=8,
                                             frames_per_buffer=3840)
 
     def startRecv(self):
@@ -24,17 +24,18 @@ class PlayStream:
 
     def udpStream(self, chunk):
         udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp.bind(("127.0.0.1", 12345))
+        udp.bind(("192.168.1.103", 12345))
 
         while True:
             soundData, addr = udp.recvfrom(chunk)
-            if soundData:
+            if len(soundData) > 100:
+                print("Data size: ", len(soundData))
                 opusdecoded_data = self.codec.decode(soundData)
                 self.streamOut.write(opusdecoded_data)
 
 
 port = 9518
-ip = "10.4.67.20"
+ip = "192.168.1.103"
 
 # Create a socket connection for connecting to the server:
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,11 +49,8 @@ client_socket.send(initialHello.encode())
 reply = client_socket.recv(1024).decode()
 print(reply)
 selectedUDPPort = 'udpport=12345'
-
+client_socket.send(selectedUDPPort.encode())
 playstream = PlayStream()
 playstream.startRecv()
-
-client_socket.send(selectedUDPPort.encode())
-
 
 

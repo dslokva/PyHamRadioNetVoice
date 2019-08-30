@@ -39,11 +39,15 @@ class AudioTranscoder:
         self.rawBytesCount = 0
         self.opusBytesCount = 0
 
+        self.UDPclients = {}
+
         # Initialize streams
         self.streamIn = Stream(self, rate=rate, channels=channels, format=pyaudio.paInt16, input=True, output=False)
         self.streamIn.stop_stream()
         self.streamOut = Stream(self, rate=rate, channels=channels, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
+
+        self.opusencoded_data = b'\00'
 
     def getAudioOutputDevices(self):
         devices = {}
@@ -106,10 +110,11 @@ class AudioTranscoder:
 
         while self.isRecordingActive:
             data = self.streamIn.read(frames_per_buffer, exception_on_overflow=False)
-            opusencoded_data = codec.encode(data)
+            self.opusencoded_data = codec.encode(data)
+            threading.Thread(target=self.udpStreamToClients, args=(self.opusencoded_data,)).start()
 
             if idxDevOut > -1:
-                opusdecoded_data = codec.decode(opusencoded_data)
+                opusdecoded_data = codec.decode(self.opusencoded_data)
                 self.streamOut.write(opusdecoded_data)
 
             # self.updateStats(len(data), len(opusencoded_data))
@@ -122,6 +127,21 @@ class AudioTranscoder:
                 self.streamOut.stop_stream()
                 if self.streamOut.is_active():
                     self.streamOut.close()
+
+    def addUDPClient(self, address, client_udp_socket):
+        self.UDPclients[address] = client_udp_socket
+
+    def removeUDPClient(self, address):
+        del(self.UDPclients[address])
+        print("UDP client removed: ", address)
+
+    def getUDPStreamsCount(self):
+        return len(self.UDPclients)
+
+    def udpStreamToClients(self, data):
+        if len(self.UDPclients) > 0:
+            for address, clientSocket in self.UDPclients.items():
+                clientSocket.sendto(data, (address, 12345))
 
 # if __name__ == '__main__':
 #     audiorec = AudioRecorder()

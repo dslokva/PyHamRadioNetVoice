@@ -1,5 +1,3 @@
-from networkServer import NetworkServer
-
 __author__ = '@sldmk'
 
 import sys
@@ -8,21 +6,21 @@ from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, 
     QComboBox, QGridLayout, QCheckBox, QSpinBox
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
+from networkServer import NetworkServer
 
 class MainWindow(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.redColorPalette = QPalette()
-        self.greenColorPalette = QPalette()
-        self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
-        self.greenColorPalette.setColor(QPalette.WindowText, QColor("green"))
-
         self.initUI()
         self.windowCenter()
         self.populateDeviceList()
 
         self.networkServer = NetworkServer(self.spinServerPort.value())
+        self.networkServer.setTranscoder(audioTranscoder)
+        self.networkServer.setClientCountLabel(self.labelClientsCount)
+        self.networkServer.setServerStatusLabel(self.labelServerStatus)
+        self.networkServer.updateServerStatus("Server is stopped", None)
 
     def initUI(self):
         self.setGeometry(0, 0, 450, 350)
@@ -46,8 +44,7 @@ class MainWindow(QWidget):
         labelClientsTxt = QLabel('Clients count: ')
         self.labelClientsCount = QLabel('0')
 
-        self.labelServerReadyStatus = QLabel('Server not ready')
-        self.labelServerReadyStatus.setPalette(self.redColorPalette)
+        self.labelServerStatus = QLabel('Server is stopped')
 
         self.comboBoxInput = QComboBox(self)
         self.comboBoxOutput = QComboBox(self)
@@ -74,7 +71,7 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 7, 0)
 
-        grid.addWidget(self.labelServerReadyStatus, 8, 0)
+        grid.addWidget(self.labelServerStatus, 8, 0, 1, 4)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -130,9 +127,13 @@ class MainWindow(QWidget):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
             self.stopNetworkServer()
+            self.startStopBtn.setText('Start')
         else:
             self.startAudioTranscoding()
             self.startNetworkServer()
+            self.startStopBtn.setText('Stop')
+        self.spinServerPort.setEnabled(not audioTranscoder.isRecordingActive)
+        self.chkBoxLivePlayback.setEnabled(not audioTranscoder.isRecordingActive)
 
     def stopNetworkServer(self):
         self.networkServer.stopTCPListener()
@@ -149,7 +150,6 @@ class MainWindow(QWidget):
 
     def stopAudioTranscoding(self):
         audioTranscoder.stopRec()
-        self.startStopBtn.setText('Start')
 
     def startAudioTranscoding(self):
         idxDevIn = self.getKeyByValue(self.devicesIn, self.comboBoxInput.currentText())
@@ -159,7 +159,6 @@ class MainWindow(QWidget):
             idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
 
         audioTranscoder.startRec(idxDevIn, idxDevOut)
-        self.startStopBtn.setText('Stop')
 
 if __name__ == '__main__':
     audioTranscoder = AudioTranscoder()
