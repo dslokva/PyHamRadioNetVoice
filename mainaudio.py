@@ -1,8 +1,6 @@
-from OPUSCodecImpl import OpusCodec
-
 __author__ = '@sldmk'
 
-
+from OPUSCodecImpl import OpusCodec
 import pyaudio
 from pyaudio import Stream
 import threading

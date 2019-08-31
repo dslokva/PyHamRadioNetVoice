@@ -127,7 +127,7 @@ class MainWindow(QWidget):
 
     def exitBtnClick(self):
         if audioPlayer.isActive:
-            self.stopAudioTranscoding()
+            self.stopAudioPlaying()
         sys.exit(0)
 
     def startStopBtnClick(self):
