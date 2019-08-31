@@ -1,10 +1,12 @@
 import random
 
+from PyQt5.QtGui import QPalette, QColor
+
 __author__ = '@sldmk'
 
 import sys
 from PyQt5.QtCore import Qt
-from threading import Thread
+from threading import Thread, Timer
 import socket
 import pyaudio
 from pyaudio import Stream
@@ -21,11 +23,17 @@ class MainWindow(QWidget):
         self.devicesOut = None
         self.clientTCPSocket = None
         self.populateDeviceList()
+        audioPlayer.setAverageDataLabel(self.labelEncodedDataCount)
 
     def initUI(self):
+        self.redColorPalette = QPalette()
+        self.greenColorPalette = QPalette()
+        self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
+        self.greenColorPalette.setColor(QPalette.WindowText, QColor("green"))
+
         self.setGeometry(0, 0, 450, 250)
         self.setWindowTitle('Voice Transcoder client v 0.1')
-        self.startStopBtn = QPushButton("Connect and play!", self)
+        self.startStopBtn = QPushButton("Connect and play", self)
         self.startStopBtn.clicked.connect(self.startStopBtnClick)
 
         exitButton = QPushButton("Exit")
@@ -54,6 +62,7 @@ class MainWindow(QWidget):
         self.labelEncodedDataCount = QLabel('0')
 
         self.labelClientStatus = QLabel('Client is stopped')
+        self.labelClientStatus.setPalette(self.redColorPalette)
 
         self.labelOutput = QLabel('Output device: ')
         self.comboBoxOutput = QComboBox(self)
@@ -124,7 +133,7 @@ class MainWindow(QWidget):
     def startStopBtnClick(self):
         if audioPlayer.isActive:
             self.stopAudioPlaying()
-            self.startStopBtn.setText('Start')
+            self.startStopBtn.setText('Connect and play')
         else:
             self.startAudioPlaying()
             self.startStopBtn.setText('Stop')
@@ -134,12 +143,14 @@ class MainWindow(QWidget):
         self.txtServerAddr.setEnabled(not audioPlayer.isActive)
         self.labelServerPort.setEnabled(not audioPlayer.isActive)
         self.spinServerPort.setEnabled(not audioPlayer.isActive)
-        self.chkBoxfixedClientPort.setEnabled(not audioPlayer.isActive and self.chkBoxfixedClientPort.isChecked())
+        self.chkBoxfixedClientPort.setEnabled(not audioPlayer.isActive)
+        self.spinClientPort.setEnabled(not audioPlayer.isActive and self.chkBoxfixedClientPort.isChecked())
 
     def startAudioPlaying(self):
         idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
         if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()):
             audioPlayer.startRecv(idxDevOut, self.spinClientPort.value())
+            self.labelClientStatus.setPalette(self.greenColorPalette)
 
     def stopAudioPlaying(self):
         try:
@@ -147,6 +158,7 @@ class MainWindow(QWidget):
             self.clientTCPSocket.send('stopstream=true'.encode())
             self.clientTCPSocket.close()
             self.labelClientStatus.setText('Client is stopped')
+            self.labelClientStatus.setPalette(self.redColorPalette)
         except Exception as err:
             print(str(err))
 
@@ -185,6 +197,8 @@ class StreamAudioPlayer():
         self.info = self.audioOut.get_host_api_info_by_index(0)
         self.numdevices = self.info.get('deviceCount')
         self.idxDevOut = 0
+        self.dataLst = []
+        self.labelAverageDataCount = QLabel
         self.streamOut = Stream(self, rate=48000, channels=1, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
 
@@ -198,10 +212,20 @@ class StreamAudioPlayer():
                                             output_device_index=devOut,
                                             frames_per_buffer=3840)
         Thread(target=self.udpStream, args=(chunk, udpPort)).start()
+        Timer(1.0, function=self.calculateAverage).start()
 
     def stopRecv(self):
         self.isActive = False
         self.streamOut.stop_stream()
+
+    def calculateAverage(self):
+        # print(round(sum(self.dataLst) / 1024, 2))
+        self.labelAverageDataCount.setText(str(round(sum(self.dataLst) / 1024, 2)))
+        self.dataLst = []
+        if self.isActive:
+            Timer(1.0, function=self.calculateAverage).start()
+        else:
+            self.labelAverageDataCount.setText('0')
 
     def udpStream(self, chunk, udpPort):
         udpReceiveSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -211,7 +235,7 @@ class StreamAudioPlayer():
         while self.isActive:
             soundData, addr = udpReceiveSocket.recvfrom(chunk)
             if len(soundData) > 100:
-                print("Data size: ", len(soundData))
+                self.dataLst.append(len(soundData))
                 opusdecoded_data = self.codec.decode(soundData)
                 self.streamOut.write(opusdecoded_data)
         udpReceiveSocket.close()
@@ -228,6 +252,9 @@ class StreamAudioPlayer():
                 d = {devOut.get('index'): devOut.get('name')}
                 devices.update(d)
         return devices
+
+    def setAverageDataLabel(self, label):
+        self.labelAverageDataCount = label
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
