@@ -39,6 +39,8 @@ class AudioTranscoder:
         self.rawBytesCount = 0
         self.opusBytesCount = 0
 
+        self.dataLst = []
+
         self.UDPclients = {}
 
         # Initialize streams
@@ -77,24 +79,17 @@ class AudioTranscoder:
         self.isRecordingActive = True
         recThread = threading.Thread(target=self.transcodingThread, args=(idxDevIn, idxDevOut))
         recThread.start()
-        # threading.Timer(1, self.periodicStatsClear).start()
 
     def stopRec(self):
         self.isRecordingActive = False
         self.rawBytesCount = 0
         self.opusBytesCount = 0
 
-    # def updateStats(self, rawBytesCount, opusBytesCount):
-    #     self.rawBytesCount += rawBytesCount
-    #     self.opusBytesCount += opusBytesCount
+    def getDataLst(self):
+        return self.dataLst
 
-    # def periodicStatsClear(self):
-    #     print("data stats 1 sec, raw: ", self.rawBytesCount, "opus data: ", self.opusBytesCount)
-    #     self.rawBytesCount = 0
-    #     self.opusBytesCount = 0
-    #     t = threading.Timer(1, self.periodicStatsClear)
-    #     if self.isRecordingActive is True:
-    #         t.start()
+    def clearDataLst(self):
+        self.dataLst = []
 
     def transcodingThread(self, idxDevIn, idxDevOut):
         self.streamIn = self.audioIn.open(format=pyaudio.paInt16, channels=channels,
@@ -116,8 +111,6 @@ class AudioTranscoder:
             if idxDevOut > -1:
                 opusdecoded_data = codec.decode(self.opusencoded_data)
                 self.streamOut.write(opusdecoded_data)
-
-            # self.updateStats(len(data), len(opusencoded_data))
 
         if not self.isRecordingActive:
             self.streamIn.stop_stream()
@@ -142,12 +135,13 @@ class AudioTranscoder:
     def getUDPStreamsCount(self):
         return len(self.UDPclients)
 
-    def udpStreamToClients(self, data):
+    def udpStreamToClients(self, soundData):
         if len(self.UDPclients) > 0:
             for clientAddressPort, clientSocket in self.UDPclients.items():
                 address = clientAddressPort.partition(":")[0]
                 port = int(clientAddressPort.partition(":")[2])
-                clientSocket.sendto(data, (address, port))
+                clientSocket.sendto(soundData, (address, port))
+                self.dataLst.append(len(soundData))
 
 # if __name__ == '__main__':
 #     audiorec = AudioRecorder()

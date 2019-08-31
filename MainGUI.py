@@ -20,6 +20,7 @@ class MainWindow(QWidget):
         self.networkServer.setTranscoder(audioTranscoder)
         self.networkServer.setClientCountLabel(self.labelClientsCount)
         self.networkServer.setServerStatusLabel(self.labelServerStatus)
+        self.networkServer.setEncodedDataCountLabel(self.labelEncodedDataCount)
         self.networkServer.updateServerStatus("Server is stopped", None)
 
     def initUI(self):
@@ -142,10 +143,6 @@ class MainWindow(QWidget):
 
     def startNetworkServer(self):
         self.networkServer.startTCPListener(self.spinServerPort.value())
-
-    def updateWorkStats(self, **kwargs):
-        opusBytes = kwargs.get('opusBytes', '0')
-        self.labelEncodedDataCount.setText(opusBytes)
 
     def chkBoxLivePlaybackClick(self):
         self.comboBoxOutput.setEnabled(self.chkBoxLivePlayback.isChecked())

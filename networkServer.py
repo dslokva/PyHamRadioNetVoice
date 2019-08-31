@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QLabel
 
 __author__ = '@sldmk'
 
-from threading import Thread
+from threading import Thread, Timer
 import socket
 
 class NetworkServer:
@@ -12,8 +12,11 @@ class NetworkServer:
         self.isServerActive = False
         self.transcoder = None
         self.UDPSockets = {}
+
         self.clientsCountLabel = QLabel()
         self.serverStatusLabel = QLabel()
+        self.encodedDataCountLabel = QLabel()
+
         self.redColorPalette = QPalette()
         self.greenColorPalette = QPalette()
         self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
@@ -30,6 +33,7 @@ class NetworkServer:
         tcpListenerThread = Thread(target=self.TCPListener)
         tcpListenerThread.setDaemon(True)
         tcpListenerThread.start()
+        Timer(1.0, function=self.calculateAverage).start()
 
     def TCPListener(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,11 +57,23 @@ class NetworkServer:
     def setServerStatusLabel(self, label):
         self.serverStatusLabel = label
 
+    def setEncodedDataCountLabel(self, label):
+        self.encodedDataCountLabel = label
+
     def updateServerStatus(self, status, palette):
         self.serverStatusLabel.setText(status)
         if palette is None:
             palette = self.redColorPalette
         self.serverStatusLabel.setPalette(palette)
+
+    def calculateAverage(self):
+        self.encodedDataCountLabel.setText(str(round(sum(self.transcoder.getDataLst()) / 1024, 2)))
+        self.transcoder.clearDataLst()
+
+        if self.isServerActive:
+            Timer(1.0, function=self.calculateAverage).start()
+        else:
+            self.encodedDataCountLabel.setText('0')
 
     def handleNetworkTCPClient(self, address, client_tcp_socket):
         while self.isServerActive:
