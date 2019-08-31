@@ -230,7 +230,7 @@ class StreamAudioPlayer():
     def udpStream(self, chunk, udpPort):
         udpReceiveSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udpReceiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        udpReceiveSocket.bind(("192.168.1.103", udpPort))
+        udpReceiveSocket.bind((socket.gethostbyname(socket.gethostname()), udpPort))
 
         while self.isActive:
             soundData, addr = udpReceiveSocket.recvfrom(chunk)
