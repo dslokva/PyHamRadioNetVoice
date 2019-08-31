@@ -5,7 +5,7 @@ from opuslib.api import ctl
 
 class OpusCodec:
 
-    def __init__(self, channels, rate, frame_size):
+    def __init__(self, channels, rate, frame_size, bitrate):
         self.decoder = opus_decoder.create_state(rate, channels)
         self.encoder = opus_encoder.create_state(rate, channels, opuslib.APPLICATION_VOIP)
         self.channels = channels
@@ -14,10 +14,13 @@ class OpusCodec:
 
         opus_encoder.encoder_ctl(self.encoder, ctl.set_bandwidth, opuslib.constants.BANDWIDTH_FULLBAND)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_signal, opuslib.constants.SIGNAL_VOICE)
-        opus_encoder.encoder_ctl(self.encoder, ctl.set_bitrate, 24000)
+        opus_encoder.encoder_ctl(self.encoder, ctl.set_bitrate, bitrate)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_inband_fec, 1)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_packet_loss_perc, 10)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_vbr, 1)
+
+    def setBitrate(self, bitrate):
+        opus_encoder.encoder_ctl(self.encoder, ctl.set_bitrate, bitrate)
 
     def encode(self, data):
         out = opus_encoder.encode(self.encoder, data, self.frame_size, len(data))

@@ -45,6 +45,12 @@ class MainWindow(QWidget):
         labelClientsTxt = QLabel('Clients count: ')
         self.labelClientsCount = QLabel('0')
 
+        self.labelBitrate = QLabel('OPUS bitrate: ')
+        self.comboBoxBitrate = QComboBox(self)
+        self.comboBoxBitrate.addItems(["8000", "12000", "24000", "48000"])
+        self.comboBoxBitrate.activated[str].connect(self.comboBoxBitrateChange)
+        self.comboBoxBitrate.setCurrentIndex(2)
+
         self.labelServerStatus = QLabel('Server is stopped')
 
         self.comboBoxInput = QComboBox(self)
@@ -63,16 +69,19 @@ class MainWindow(QWidget):
         grid.addWidget(self.chkBoxLivePlayback, 3, 0)
         grid.addWidget(self.comboBoxOutput, 3, 1, 1, 4)
 
-        grid.addWidget(QLabel(''), 4, 0)
+        grid.addWidget(self.labelBitrate, 4, 0)
+        grid.addWidget(self.comboBoxBitrate, 4, 1, 1, 4)
 
-        grid.addWidget(labelClientsTxt, 5, 0)
-        grid.addWidget(self.labelClientsCount, 5, 1)
-        grid.addWidget(labelEncodedDataTxt, 6, 0)
-        grid.addWidget(self.labelEncodedDataCount, 6, 1)
+        grid.addWidget(QLabel(''), 5, 0)
 
-        grid.addWidget(QLabel(''), 7, 0)
+        grid.addWidget(labelClientsTxt, 6, 0)
+        grid.addWidget(self.labelClientsCount, 6, 1)
+        grid.addWidget(labelEncodedDataTxt, 7, 0)
+        grid.addWidget(self.labelEncodedDataCount, 7, 1)
 
-        grid.addWidget(self.labelServerStatus, 8, 0, 1, 4)
+        grid.addWidget(QLabel(''), 8, 0)
+
+        grid.addWidget(self.labelServerStatus, 9, 0, 1, 4)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -119,6 +128,9 @@ class MainWindow(QWidget):
         qtRectangle.moveCenter(centerPoint)
         self.move(qtRectangle.topLeft())
 
+    def comboBoxBitrateChange(self, text):
+        audioTranscoder.setBitrate(int(text))
+
     def exitBtnClick(self):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
@@ -137,6 +149,8 @@ class MainWindow(QWidget):
         self.spinServerPort.setEnabled(not audioTranscoder.isRecordingActive)
         self.chkBoxLivePlayback.setEnabled(not audioTranscoder.isRecordingActive)
         self.labelSrvPort.setEnabled(not audioTranscoder.isRecordingActive)
+        self.labelBitrate.setEnabled(not audioTranscoder.isRecordingActive)
+        self.comboBoxBitrate.setEnabled(not audioTranscoder.isRecordingActive)
 
     def stopNetworkServer(self):
         self.networkServer.stopTCPListener()
@@ -160,7 +174,7 @@ class MainWindow(QWidget):
         audioTranscoder.startRec(idxDevIn, idxDevOut)
 
 if __name__ == '__main__':
-    audioTranscoder = AudioTranscoder()
+    audioTranscoder = AudioTranscoder(24000)
     app = QApplication(sys.argv)
     ex = MainWindow()
     sys.exit(app.exec_())

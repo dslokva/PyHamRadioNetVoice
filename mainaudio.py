@@ -27,12 +27,12 @@ rate = 48000
 opus_frame_size = 3840
 
 class AudioTranscoder:
-    def __init__(self):
+    def __init__(self, codecBitrate):
         self.audioIn = pyaudio.PyAudio()
         self.audioOut = pyaudio.PyAudio()
         self.info = self.audioIn.get_host_api_info_by_index(0)
         self.numdevices = self.info.get('deviceCount')
-
+        self.codecBitrate = codecBitrate
         self.isRecordingActive = False
         self.rawBytesCount = 0
         self.opusBytesCount = 0
@@ -48,6 +48,12 @@ class AudioTranscoder:
         self.streamOut.stop_stream()
 
         self.opusencoded_data = b'\00'
+
+    def setBitrate(self, bitrate):
+        self.codecBitrate = bitrate
+
+    def getBitrate(self):
+        return self.codecBitrate
 
     def getAudioOutputDevices(self):
         devices = {}
@@ -99,7 +105,7 @@ class AudioTranscoder:
                                                 output_device_index=idxDevOut,
                                                 frames_per_buffer=frames_per_buffer)
 
-        codec = OpusCodec(channels=channels, rate=rate, frame_size=opus_frame_size)
+        codec = OpusCodec(channels=channels, rate=rate, frame_size=opus_frame_size, bitrate=self.codecBitrate)
 
         while self.isRecordingActive:
             data = self.streamIn.read(frames_per_buffer, exception_on_overflow=False)

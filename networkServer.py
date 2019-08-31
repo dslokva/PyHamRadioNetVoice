@@ -12,7 +12,6 @@ class NetworkServer:
         self.isServerActive = False
         self.transcoder = None
         self.UDPSockets = {}
-
         self.clientsCountLabel = QLabel()
         self.serverStatusLabel = QLabel()
         self.encodedDataCountLabel = QLabel()
@@ -86,6 +85,7 @@ class NetworkServer:
                     if clienttext.find("udpport", 0, len(clienttext)) != -1:
                         clientUDPPort = clienttext.partition("=")[2]
                         print("Client UDP port: ", clientUDPPort)
+                        client_tcp_socket.send(str('setbitrate='+str(self.transcoder.getBitrate())).encode())
 
                         client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         self.transcoder.addUDPClient(str(address[0]+":"+clientUDPPort), client_udp_socket)

@@ -23,6 +23,7 @@ class MainWindow(QWidget):
         self.devicesOut = None
         self.clientTCPSocket = None
         self.populateDeviceList()
+        self.codecBitrate = 12000
         audioPlayer.setAverageDataLabel(self.labelEncodedDataCount)
 
     def initUI(self):
@@ -178,6 +179,12 @@ class MainWindow(QWidget):
 
             selectedUDPPort = 'udpport=' + str(self.spinClientPort.value())
             self.clientTCPSocket.send(selectedUDPPort.encode())
+
+            reply = self.clientTCPSocket.recv(1024).decode()
+            print(reply)
+            if reply.find("setbitrate", 0, len(reply)) != -1:
+                audioPlayer.setCodecBitrate(reply.partition("=")[2])
+
             self.labelClientStatus.setText('Connected to server: '+address)
             return True
         except socket.error as err:
@@ -191,7 +198,7 @@ class MainWindow(QWidget):
         return -1
 
 class StreamAudioPlayer():
-    def __init__(self):
+    def __init__(self, codecBitrate):
         self.isActive = False
         self.audioOut = pyaudio.PyAudio()
         self.info = self.audioOut.get_host_api_info_by_index(0)
@@ -202,7 +209,10 @@ class StreamAudioPlayer():
         self.streamOut = Stream(self, rate=48000, channels=1, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
 
-        self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840)
+        self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840, bitrate=codecBitrate)
+
+    def setCodecBitrate(self, codecBitrate):
+        self.codec.setBitrate(codecBitrate)
 
     def startRecv(self, devOut, udpPort):
         chunk = 3840
@@ -258,7 +268,7 @@ class StreamAudioPlayer():
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    audioPlayer = StreamAudioPlayer()
+    audioPlayer = StreamAudioPlayer(24000)
     ex = MainWindow()
     sys.exit(app.exec_())
 
