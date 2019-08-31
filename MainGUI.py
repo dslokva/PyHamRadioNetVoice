@@ -32,7 +32,7 @@ class MainWindow(QWidget):
         exitButton = QPushButton("Exit")
         exitButton.clicked.connect(self.exitBtnClick)
 
-        labelInput = QLabel('Input device:')
+
         self.labelSrvPort = QLabel('Server port:')
         self.spinServerPort = QSpinBox()
         self.spinServerPort.setMaximum(65535)
@@ -53,6 +53,7 @@ class MainWindow(QWidget):
 
         self.labelServerStatus = QLabel('Server is stopped')
 
+        self.labelInput = QLabel('Input device:')
         self.comboBoxInput = QComboBox(self)
         self.comboBoxOutput = QComboBox(self)
         self.comboBoxOutput.setEnabled(0)
@@ -63,7 +64,7 @@ class MainWindow(QWidget):
         grid = QGridLayout()
         grid.setSpacing(6)
 
-        grid.addWidget(labelInput, 1, 0)
+        grid.addWidget(self.labelInput, 1, 0)
         grid.addWidget(self.comboBoxInput, 1, 1, 1, 4)
 
         grid.addWidget(self.chkBoxLivePlayback, 3, 0)
@@ -151,6 +152,8 @@ class MainWindow(QWidget):
         self.labelSrvPort.setEnabled(not audioTranscoder.isRecordingActive)
         self.labelBitrate.setEnabled(not audioTranscoder.isRecordingActive)
         self.comboBoxBitrate.setEnabled(not audioTranscoder.isRecordingActive)
+        self.labelInput.setEnabled(not audioTranscoder.isRecordingActive)
+        self.comboBoxInput.setEnabled(not audioTranscoder.isRecordingActive)
 
     def stopNetworkServer(self):
         self.networkServer.stopTCPListener()
