@@ -59,26 +59,37 @@ class NetworkServer:
             palette = self.redColorPalette
         self.serverStatusLabel.setPalette(palette)
 
-    def handleNetworkTCPClient(self, address, client_socket):
+    def handleNetworkTCPClient(self, address, client_tcp_socket):
         while self.isServerActive:
             try:
-                if client_socket._closed is False:
-                    clienttext = client_socket.recv(1024).decode()
+                if client_tcp_socket._closed is False:
+                    clienttext = client_tcp_socket.recv(1024).decode()
                     if clienttext.find("type=hello", 0, len(clienttext)) != -1:
                         print("Client connected: ", clienttext, ", from: ", address[0], ":", address[1])
-                        client_socket.send('type=ready|request=udpport'.encode())
+                        client_tcp_socket.send('type=ready|request=udpport'.encode())
                     if clienttext.find("udpport", 0, len(clienttext)) != -1:
-                        print("Client UDP port: ", clienttext.partition("=")[2])
+                        clientUDPPort = clienttext.partition("=")[2]
+                        print("Client UDP port: ", clientUDPPort)
+
                         client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        self.transcoder.addUDPClient(str(address[0]), client_udp_socket)
+                        self.transcoder.addUDPClient(str(address[0]+":"+clientUDPPort), client_udp_socket)
                         self.updateClientCount()
+                    if clienttext.find("stopstream", 0, len(clienttext)) != -1:
+                        print("Client socket terminate: "+str(address[0]))
+                        client_tcp_socket.close()
+                        self.transcoder.removeUDPClient(str(address[0]))
+                        self.updateClientCount()
+                else:
+                    self.transcoder.removeUDPClient(str(address[0]))
+                    self.updateClientCount()
+                    break
 
             except socket.error as msg:
                 print("Client socket exception: %s\n" % msg)
-                client_socket.close()
+                client_tcp_socket.close()
                 self.transcoder.removeUDPClient(str(address[0]))
                 self.updateClientCount()
-        client_socket.close()
+        client_tcp_socket.close()
 
     def get_default_ip_address(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

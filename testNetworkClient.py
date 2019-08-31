@@ -18,8 +18,9 @@ class MainWindow(QWidget):
         super().__init__()
         self.initUI()
         self.windowCenter()
-        self.populateDeviceList()
         self.devicesOut = None
+        self.clientTCPSocket = None
+        self.populateDeviceList()
 
     def initUI(self):
         self.setGeometry(0, 0, 450, 250)
@@ -136,73 +137,85 @@ class MainWindow(QWidget):
         self.chkBoxfixedClientPort.setEnabled(not audioPlayer.isActive and self.chkBoxfixedClientPort.isChecked())
 
     def startAudioPlaying(self):
+        idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
         if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()):
-            audioPlayer.startRecv()
-
-        pass
+            audioPlayer.startRecv(idxDevOut, self.spinClientPort.value())
 
     def stopAudioPlaying(self):
-        audioPlayer.stopRecv()
-        self.labelClientStatus.setText('Client is stopped')
-        pass
+        try:
+            audioPlayer.stopRecv()
+            self.clientTCPSocket.send('stopstream=true'.encode())
+            self.clientTCPSocket.close()
+            self.labelClientStatus.setText('Client is stopped')
+        except Exception as err:
+            print(str(err))
 
     def connectToServer(self, address, port):
         try:
             # Create a socket connection for connecting to the server:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((address, port))
+            self.clientTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.clientTCPSocket.connect((address, port))
 
             # send hello to server
             initialHello = socket.gethostname() + ('|type=hello|version=1.0')
-            client_socket.send(initialHello.encode())
+            self.clientTCPSocket.send(initialHello.encode())
 
             # receive server first reply
-            reply = client_socket.recv(1024).decode()
+            reply = self.clientTCPSocket.recv(1024).decode()
             print(reply)
-            random.seed()
-            udpPort = random.randint(10000, 65535)
-            selectedUDPPort = 'udpport=' + str(udpPort)
-            client_socket.send(selectedUDPPort.encode())
+
+            selectedUDPPort = 'udpport=' + str(self.spinClientPort.value())
+            self.clientTCPSocket.send(selectedUDPPort.encode())
             self.labelClientStatus.setText('Connected to server: '+address)
             return True
         except socket.error as err:
             self.labelClientStatus.setText(err.strerror)
             return False
 
-class StreamAudioPlayer:
+    def getKeyByValue(self, searchDict, searchText):
+        for key, value in searchDict.items():
+            if value == searchText:
+                return key
+        return -1
+
+class StreamAudioPlayer():
     def __init__(self):
         self.isActive = False
         self.audioOut = pyaudio.PyAudio()
         self.info = self.audioOut.get_host_api_info_by_index(0)
         self.numdevices = self.info.get('deviceCount')
-
+        self.idxDevOut = 0
         self.streamOut = Stream(self, rate=48000, channels=1, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
 
         self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840)
-        self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
-                                            rate=48000, input=False, output=True,
-                                            output_device_index=8,
-                                            frames_per_buffer=3840)
 
-    def startRecv(self):
+    def startRecv(self, devOut, udpPort):
         chunk = 3840
         self.isActive = True
-        Thread(target=self.udpStream, args=(chunk,)).start()
+        self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
+                                            rate=48000, input=False, output=True,
+                                            output_device_index=devOut,
+                                            frames_per_buffer=3840)
+        Thread(target=self.udpStream, args=(chunk, udpPort)).start()
 
     def stopRecv(self):
         self.isActive = False
+        self.streamOut.stop_stream()
 
-    def udpStream(self, chunk):
-        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp.bind(("192.168.1.103", 12345))
+    def udpStream(self, chunk, udpPort):
+        udpReceiveSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udpReceiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        udpReceiveSocket.bind(("192.168.1.103", udpPort))
 
         while self.isActive:
-            soundData, addr = udp.recvfrom(chunk)
+            soundData, addr = udpReceiveSocket.recvfrom(chunk)
             if len(soundData) > 100:
                 print("Data size: ", len(soundData))
                 opusdecoded_data = self.codec.decode(soundData)
                 self.streamOut.write(opusdecoded_data)
+        udpReceiveSocket.close()
+        print("socket closed")
 
     def getDefaultAudioOutDeviceIndex(self):
         return self.audioOut.get_default_output_device_info()["index"]

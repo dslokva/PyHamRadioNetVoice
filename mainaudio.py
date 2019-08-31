@@ -128,20 +128,26 @@ class AudioTranscoder:
                 if self.streamOut.is_active():
                     self.streamOut.close()
 
-    def addUDPClient(self, address, client_udp_socket):
-        self.UDPclients[address] = client_udp_socket
+    def addUDPClient(self, clientAddressPort, client_udp_socket):
+        self.UDPclients[clientAddressPort] = client_udp_socket
 
     def removeUDPClient(self, address):
-        del(self.UDPclients[address])
-        print("UDP client removed: ", address)
+        if len(self.UDPclients) > 0:
+            for clientAddressPort, socket in self.UDPclients.items():
+                if clientAddressPort.find(address) > -1:
+                    del(self.UDPclients[clientAddressPort])
+                    print("UDP client removed: ", address)
+                    break
 
     def getUDPStreamsCount(self):
         return len(self.UDPclients)
 
     def udpStreamToClients(self, data):
         if len(self.UDPclients) > 0:
-            for address, clientSocket in self.UDPclients.items():
-                clientSocket.sendto(data, (address, 12345))
+            for clientAddressPort, clientSocket in self.UDPclients.items():
+                address = clientAddressPort.partition(":")[0]
+                port = int(clientAddressPort.partition(":")[2])
+                clientSocket.sendto(data, (address, port))
 
 # if __name__ == '__main__':
 #     audiorec = AudioRecorder()
