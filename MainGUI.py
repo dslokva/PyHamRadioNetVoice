@@ -1,15 +1,22 @@
+from PyQt5.QtGui import QColor, QPalette
+
 __author__ = '@sldmk'
 
 import sys
 from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
-    QComboBox, QGridLayout, QCheckBox, QSpinBox
+    QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber
 from PyQt5.QtCore import Qt
 from networkServer import NetworkServer
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.greenColorPalette = QPalette()
+        self.greenColorPalette.setColor(QPalette.WindowText, QColor("green"))
+        self.blackColorPalette = QPalette()
+        self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
+
         self.initUI()
         self.windowCenter()
         self.devicesIn = None
@@ -61,6 +68,12 @@ class MainWindow(QWidget):
         self.chkBoxLivePlayback = QCheckBox('Live control playback output: ')
         self.chkBoxLivePlayback.stateChanged.connect(self.chkBoxLivePlaybackClick)
 
+        self.labelLcdTrxFrequency = QLabel('Transceiver frequency:')
+        self.lcdTrxFrequency = QLCDNumber(9)
+        self.lcdTrxFrequency.display('14.150.00')
+        self.lcdTrxFrequency.setPalette(self.blackColorPalette)
+        self.lcdTrxFrequency.setMinimumHeight(48)
+
         grid = QGridLayout()
         grid.setSpacing(6)
 
@@ -83,6 +96,11 @@ class MainWindow(QWidget):
         grid.addWidget(QLabel(''), 8, 0)
 
         grid.addWidget(self.labelServerStatus, 9, 0, 1, 4)
+
+        grid.addWidget(QLabel(''), 10, 0)
+
+        grid.addWidget(self.labelLcdTrxFrequency, 11, 0, 1, 2)
+        grid.addWidget(self.lcdTrxFrequency, 11, 1, 1, 4)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
