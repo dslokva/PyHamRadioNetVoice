@@ -82,14 +82,15 @@ class NetworkServer:
                     if clienttext.find("type=hello", 0, len(clienttext)) != -1:
                         print("Client connected: ", clienttext, ", from: ", address[0], ":", address[1])
                         client_tcp_socket.send('type=ready|request=udpport'.encode())
+
                     if clienttext.find("udpport", 0, len(clienttext)) != -1:
                         clientUDPPort = clienttext.partition("=")[2]
                         print("Client UDP port: ", clientUDPPort)
                         client_tcp_socket.send(str('setbitrate='+str(self.transcoder.getBitrate())).encode())
-
                         client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         self.transcoder.addUDPClient(str(address[0]+":"+clientUDPPort), client_udp_socket)
                         self.updateClientCount()
+
                     if clienttext.find("stopstream", 0, len(clienttext)) != -1:
                         print("Client socket terminate: "+str(address[0]))
                         client_tcp_socket.close()

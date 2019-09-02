@@ -1,9 +1,9 @@
-import random
-
-from PyQt5.QtGui import QPalette, QColor
+import netifaces as netifaces
 
 __author__ = '@sldmk'
 
+import random
+from PyQt5.QtGui import QPalette, QColor
 import sys
 from PyQt5.QtCore import Qt
 from threading import Thread, Timer
@@ -23,6 +23,7 @@ class MainWindow(QWidget):
         self.devicesOut = None
         self.clientTCPSocket = None
         self.populateDeviceList()
+        self.populateInternalIPAddresses()
         self.codecBitrate = 12000
         audioPlayer.setAverageDataLabel(self.labelEncodedDataCount)
 
@@ -48,6 +49,9 @@ class MainWindow(QWidget):
         self.spinServerPort.setMaximum(65535)
         self.spinServerPort.setMinimum(1025)
         self.spinServerPort.setValue(9518)
+
+        self.labelClientIPAddr = QLabel('Select interface:')
+        self.comboBoxClientIPAddr = QComboBox(self)
 
         self.chkBoxfixedClientPort = QCheckBox('Fixed client UDP port:')
         self.chkBoxfixedClientPort.stateChanged.connect(self.chkBoxfixedClientPortClick)
@@ -82,17 +86,20 @@ class MainWindow(QWidget):
         grid.addWidget(self.labelServerPort, 3, 0, 1, 2)
         grid.addWidget(self.spinServerPort, 3, 2)
 
-        grid.addWidget(self.chkBoxfixedClientPort, 4, 0, 1, 2)
-        grid.addWidget(self.spinClientPort, 4, 2)
+        grid.addWidget(self.labelClientIPAddr, 4, 0, 1, 2)
+        grid.addWidget(self.comboBoxClientIPAddr, 4, 2)
 
-        grid.addWidget(QLabel(''), 5, 0)
+        grid.addWidget(self.chkBoxfixedClientPort, 5, 0, 1, 2)
+        grid.addWidget(self.spinClientPort, 5, 2)
 
-        grid.addWidget(labelEncodedDataTxt, 6, 0, 1, 2)
-        grid.addWidget(self.labelEncodedDataCount, 6, 2)
+        grid.addWidget(QLabel(''), 6, 0)
 
-        grid.addWidget(QLabel(''), 7, 0)
+        grid.addWidget(labelEncodedDataTxt, 7, 0, 1, 2)
+        grid.addWidget(self.labelEncodedDataCount, 7, 2)
 
-        grid.addWidget(self.labelClientStatus, 8, 0, 1, 4)
+        grid.addWidget(QLabel(''), 8, 0)
+
+        grid.addWidget(self.labelClientStatus, 9, 0, 1, 4)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -106,6 +113,24 @@ class MainWindow(QWidget):
 
         self.setLayout(vbox)
         self.show()
+
+    def populateInternalIPAddresses(self):
+        ifaces = netifaces.interfaces()
+        for iface in ifaces:
+            ifaceDetails = netifaces.ifaddresses(iface)
+            ifaceDetailsDict = ifaceDetails.get(netifaces.AF_INET)
+            if ifaceDetailsDict is not None:
+                self.comboBoxClientIPAddr.addItem(ifaceDetailsDict[0]['addr'])
+
+        gws = netifaces.gateways()
+        defgw = gws.get('default')
+        if defgw is not None:
+            ifaceDetails = netifaces.ifaddresses(defgw[netifaces.AF_INET][1])
+            ifaceDetailsDict = ifaceDetails.get(netifaces.AF_INET)
+            if ifaceDetailsDict is not None:
+                index = self.comboBoxClientIPAddr.findText(ifaceDetailsDict[0]['addr'], Qt.MatchFixedString)
+                if index >= 0:
+                    self.comboBoxClientIPAddr.setCurrentIndex(index)
 
     def chkBoxfixedClientPortClick(self):
         self.spinClientPort.setEnabled(self.chkBoxfixedClientPort.isChecked())
@@ -138,6 +163,9 @@ class MainWindow(QWidget):
         else:
             self.startAudioPlaying()
             self.startStopBtn.setText('Stop')
+
+        self.labelClientIPAddr.setEnabled(not audioPlayer.isActive)
+        self.comboBoxClientIPAddr.setEnabled(not audioPlayer.isActive)
         self.labelOutput.setEnabled(not audioPlayer.isActive)
         self.comboBoxOutput.setEnabled(not audioPlayer.isActive)
         self.labelServerAddr.setEnabled(not audioPlayer.isActive)
@@ -150,7 +178,7 @@ class MainWindow(QWidget):
     def startAudioPlaying(self):
         idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
         if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()):
-            audioPlayer.startRecv(idxDevOut, self.spinClientPort.value())
+            audioPlayer.startRecv(idxDevOut, self.comboBoxClientIPAddr.currentText(), self.spinClientPort.value())
             self.labelClientStatus.setPalette(self.greenColorPalette)
 
     def stopAudioPlaying(self):
@@ -214,14 +242,14 @@ class StreamAudioPlayer():
     def setCodecBitrate(self, codecBitrate):
         self.codec.setBitrate(codecBitrate)
 
-    def startRecv(self, devOut, udpPort):
+    def startRecv(self, devOut, intfAddr, udpPort):
         chunk = 3840
         self.isActive = True
         self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
                                             rate=48000, input=False, output=True,
                                             output_device_index=devOut,
                                             frames_per_buffer=3840)
-        Thread(target=self.udpStream, args=(chunk, udpPort)).start()
+        Thread(target=self.udpStream, args=(chunk, intfAddr, udpPort)).start()
         Timer(1.0, function=self.calculateAverage).start()
 
     def stopRecv(self):
@@ -237,10 +265,11 @@ class StreamAudioPlayer():
         else:
             self.labelAverageDataCount.setText('0')
 
-    def udpStream(self, chunk, udpPort):
+    def udpStream(self, chunk, intfAddr, udpPort):
         udpReceiveSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udpReceiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        udpReceiveSocket.bind((socket.gethostbyname(socket.gethostname()), udpPort))
+        udpReceiveSocket.bind((intfAddr, udpPort))
+        print("UDP socket binded to local address: " + str(intfAddr))
 
         while self.isActive:
             soundData, addr = udpReceiveSocket.recvfrom(chunk)
