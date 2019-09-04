@@ -5,7 +5,7 @@ __author__ = '@sldmk'
 import sys
 from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
-    QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber, QSlider
+    QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber, QSlider, QGroupBox, QRadioButton
 from PyQt5.QtCore import Qt
 from networkServer import NetworkServer
 
@@ -31,7 +31,7 @@ class MainWindow(QWidget):
         self.networkServer.updateServerStatus("Server is stopped", None)
 
     def initUI(self):
-        self.setGeometry(0, 0, 450, 400)
+        self.setGeometry(0, 0, 460, 420)
         self.setWindowTitle('Voice Transcoder server v 0.1')
         self.startStopBtn = QPushButton("Start", self)
         self.startStopBtn.clicked.connect(self.startStopBtnClick)
@@ -46,7 +46,7 @@ class MainWindow(QWidget):
         self.spinServerPort.setMinimum(1025)
         self.spinServerPort.setValue(9518)
 
-        labelEncodedDataTxt = QLabel('Encoded data to clients kBytes/sec: ')
+        labelEncodedDataTxt = QLabel('Encoded data kBytes/sec: ')
         self.labelEncodedDataCount = QLabel('0')
 
         labelClientsTxt = QLabel('Clients count: ')
@@ -76,14 +76,26 @@ class MainWindow(QWidget):
         self.comboBoxOutput = QComboBox(self)
         self.comboBoxOutput.setEnabled(0)
 
-        self.chkBoxLivePlayback = QCheckBox('Live control playback output: ')
+        self.chkBoxLivePlayback = QCheckBox('Live playback output: ')
         self.chkBoxLivePlayback.stateChanged.connect(self.chkBoxLivePlaybackClick)
 
-        self.labelLcdTrxFrequency = QLabel('Transceiver frequency:')
+        self.labelRigName = QLabel("Rig is unavailable")
+        self.rigSelectGroupBox = QGroupBox("Rig select:")
+        self.radioBtnTRX1 = QRadioButton("Rig 1")
+        self.radioBtnTRX1.setChecked(True)
+        self.radioBtnTRX2 = QRadioButton("Rig 2")
+
+        vboxRigSelect = QHBoxLayout()
+        vboxRigSelect.addWidget(self.radioBtnTRX1)
+        vboxRigSelect.addWidget(self.radioBtnTRX2)
+        self.rigSelectGroupBox.setLayout(vboxRigSelect)
+
         self.lcdTrxFrequency = QLCDNumber(9)
         self.lcdTrxFrequency.display('14.150.00')
         self.lcdTrxFrequency.setPalette(self.blackColorPalette)
-        self.lcdTrxFrequency.setMinimumHeight(48)
+        self.lcdTrxFrequency.setMinimumHeight(50)
+        self.lcdTrxFrequency.setMaximumHeight(50)
+        self.lcdTrxFrequency.setMaximumWidth(275)
 
         grid = QGridLayout()
         grid.setSpacing(6)
@@ -114,10 +126,11 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 11, 0)
 
-        grid.addWidget(self.labelLcdTrxFrequency, 12, 0, 1, 2)
+        grid.addWidget(self.rigSelectGroupBox, 12, 0)
         grid.addWidget(self.lcdTrxFrequency, 12, 1, 1, 5)
+        grid.addWidget(self.labelRigName, 13, 0, 1, 1)
 
-        grid.addWidget(QLabel(''), 13, 0)
+        grid.addWidget(QLabel(''), 14, 0)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -132,7 +145,7 @@ class MainWindow(QWidget):
         vbox.addLayout(hbox)
 
         self.setLayout(vbox)
-        self.setMinimumSize(450, 400)
+        self.setMinimumSize(460, 420)
         self.show()
 
     def populateDeviceList(self):
