@@ -1,4 +1,5 @@
 import netifaces as netifaces
+from PyQt5.uic.properties import QtGui
 
 __author__ = '@sldmk'
 
@@ -184,6 +185,8 @@ class MainWindow(QWidget):
 
     def startAudioPlaying(self):
         idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
+        self.labelClientStatus.setText("Trying to connect...")
+        app.processEvents()
         if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()) == True:
             audioPlayer.startRecv(idxDevOut, self.comboBoxClientIPAddr.currentText(), self.spinClientPort.value())
             self.labelClientStatus.setPalette(self.greenColorPalette)
@@ -226,8 +229,8 @@ class MainWindow(QWidget):
             if reply.find("setbitrate", 0, len(reply)) != -1:
                 bitrate = reply.partition("=")[2]
                 audioPlayer.setCodecBitrate(bitrate)
+                self.labelClientStatus.setText('Connected to server: '+address+', offered bitrate: '+bitrate)
 
-            self.labelClientStatus.setText('Connected to server: '+address+', offered bitrate: '+bitrate)
             self.waitCommandsFromServer = True
             Thread(target=self.handleMessagesFromServer, args=()).start()
 
