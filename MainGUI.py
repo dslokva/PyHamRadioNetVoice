@@ -31,7 +31,7 @@ class MainWindow(QWidget):
         self.networkServer.updateServerStatus("Server is stopped", None)
 
     def initUI(self):
-        self.setGeometry(0, 0, 450, 350)
+        self.setGeometry(0, 0, 450, 400)
         self.setWindowTitle('Voice Transcoder server v 0.1')
         self.startStopBtn = QPushButton("Start", self)
         self.startStopBtn.clicked.connect(self.startStopBtnClick)
@@ -117,6 +117,8 @@ class MainWindow(QWidget):
         grid.addWidget(self.labelLcdTrxFrequency, 12, 0, 1, 2)
         grid.addWidget(self.lcdTrxFrequency, 12, 1, 1, 5)
 
+        grid.addWidget(QLabel(''), 13, 0)
+
         hbox = QHBoxLayout()
         hbox.addStretch(1)
         hbox.addWidget(self.labelSrvPort)
@@ -130,6 +132,7 @@ class MainWindow(QWidget):
         vbox.addLayout(hbox)
 
         self.setLayout(vbox)
+        self.setMinimumSize(450, 400)
         self.show()
 
     def populateDeviceList(self):

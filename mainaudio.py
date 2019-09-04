@@ -119,12 +119,14 @@ class AudioTranscoder:
 
         while self.isRecordingActive:
             data = self.streamIn.read(frames_per_buffer, exception_on_overflow=False)
+            #increase volume if needed, may cause some echo effect on high level volume
+            data = self.set_audio_volume(data, self.volume)
+
             self.opusencoded_data = codec.encode(data)
             threading.Thread(target=self.udpStreamToClients, args=(self.opusencoded_data,)).start()
 
             if idxDevOut > -1:
-                # opusdecoded_data = codec.decode(self.opusencoded_data)
-                opusdecoded_data = self.set_audio_volume(codec.decode(self.opusencoded_data), self.volume)
+                opusdecoded_data = codec.decode(self.opusencoded_data)
                 self.streamOut.write(opusdecoded_data)
 
         if not self.isRecordingActive:
