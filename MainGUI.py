@@ -5,7 +5,7 @@ __author__ = '@sldmk'
 import sys
 from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
-    QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber
+    QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber, QSlider
 from PyQt5.QtCore import Qt
 from networkServer import NetworkServer
 
@@ -58,6 +58,17 @@ class MainWindow(QWidget):
         self.comboBoxBitrate.activated[str].connect(self.comboBoxBitrateChange)
         self.comboBoxBitrate.setCurrentIndex(2)
 
+        labelVolume = QLabel('Volume gain:')
+        self.labelVolumeValue = QLabel('0%')
+        self.labelVolumeValue.setAlignment(Qt.AlignCenter)
+        self.sliderVolume = QSlider(Qt.Horizontal)
+        self.sliderVolume.setTickPosition(QSlider.TicksBothSides)
+        self.sliderVolume.setMinimum(10)
+        self.sliderVolume.setMaximum(20)
+        self.sliderVolume.setTickInterval(1)
+        self.sliderVolume.setSingleStep(1)
+        self.sliderVolume.valueChanged.connect(self.volumeChangeEvent)
+
         self.labelServerStatus = QLabel('Server is stopped')
 
         self.labelInput = QLabel('Input device:')
@@ -78,29 +89,33 @@ class MainWindow(QWidget):
         grid.setSpacing(6)
 
         grid.addWidget(self.labelInput, 1, 0)
-        grid.addWidget(self.comboBoxInput, 1, 1, 1, 4)
+        grid.addWidget(self.comboBoxInput, 1, 1, 1, 5)
 
         grid.addWidget(self.chkBoxLivePlayback, 3, 0)
-        grid.addWidget(self.comboBoxOutput, 3, 1, 1, 4)
+        grid.addWidget(self.comboBoxOutput, 3, 1, 1, 5)
 
         grid.addWidget(self.labelBitrate, 4, 0)
-        grid.addWidget(self.comboBoxBitrate, 4, 1, 1, 4)
+        grid.addWidget(self.comboBoxBitrate, 4, 1, 1, 5)
 
-        grid.addWidget(QLabel(''), 5, 0)
+        grid.addWidget(labelVolume, 5, 0)
+        grid.addWidget(self.sliderVolume, 5, 1, 1, 4)
+        grid.addWidget(self.labelVolumeValue, 5, 5)
 
-        grid.addWidget(labelClientsTxt, 6, 0)
-        grid.addWidget(self.labelClientsCount, 6, 1)
-        grid.addWidget(labelEncodedDataTxt, 7, 0)
-        grid.addWidget(self.labelEncodedDataCount, 7, 1)
+        grid.addWidget(QLabel(''), 6, 0)
 
-        grid.addWidget(QLabel(''), 8, 0)
+        grid.addWidget(labelClientsTxt, 7, 0)
+        grid.addWidget(self.labelClientsCount, 7, 1)
+        grid.addWidget(labelEncodedDataTxt, 8, 0)
+        grid.addWidget(self.labelEncodedDataCount, 8, 1)
 
-        grid.addWidget(self.labelServerStatus, 9, 0, 1, 4)
+        grid.addWidget(QLabel(''), 9, 0)
 
-        grid.addWidget(QLabel(''), 10, 0)
+        grid.addWidget(self.labelServerStatus, 10, 0, 1, 5)
 
-        grid.addWidget(self.labelLcdTrxFrequency, 11, 0, 1, 2)
-        grid.addWidget(self.lcdTrxFrequency, 11, 1, 1, 4)
+        grid.addWidget(QLabel(''), 11, 0)
+
+        grid.addWidget(self.labelLcdTrxFrequency, 12, 0, 1, 2)
+        grid.addWidget(self.lcdTrxFrequency, 12, 1, 1, 5)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -193,6 +208,10 @@ class MainWindow(QWidget):
             idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
 
         audioTranscoder.startRec(idxDevIn, idxDevOut)
+
+    def volumeChangeEvent(self):
+        self.labelVolumeValue.setText(str((self.sliderVolume.value()*10)-100)+"%")
+        audioTranscoder.setVolume(self.sliderVolume.value()*10)
 
 if __name__ == '__main__':
     audioTranscoder = AudioTranscoder(24000)

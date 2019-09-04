@@ -1,3 +1,5 @@
+import numpy
+
 __author__ = '@sldmk'
 
 from OPUSCodecImpl import OpusCodec
@@ -21,10 +23,12 @@ import threading
 # rate = 24000
 # opus_frame_size = 1920
 
-frames_per_buffer = 3840
+frames_per_buffer = 1920
+# frames_per_buffer = 3840
 channels = 1
 rate = 48000
-opus_frame_size = 3840
+opus_frame_size = 1920
+# opus_frame_size = 3840
 
 class AudioTranscoder:
     def __init__(self, codecBitrate):
@@ -36,7 +40,7 @@ class AudioTranscoder:
         self.isRecordingActive = False
         self.rawBytesCount = 0
         self.opusBytesCount = 0
-
+        self.volume = 100
         self.dataLst = []
 
         self.UDPclients = {}
@@ -95,6 +99,12 @@ class AudioTranscoder:
     def clearDataLst(self):
         self.dataLst = []
 
+    def set_audio_volume(self, datalist, volume):
+        sound_level = (volume / 100.)
+        chunk = numpy.frombuffer(datalist, numpy.int16)
+        chunk = chunk * sound_level
+        return chunk.astype(numpy.int16).tostring()
+
     def transcodingThread(self, idxDevIn, idxDevOut):
         self.streamIn = self.audioIn.open(format=pyaudio.paInt16, channels=channels,
                                           rate=rate, input_device_index=idxDevIn, input=True, output=False,
@@ -113,7 +123,8 @@ class AudioTranscoder:
             threading.Thread(target=self.udpStreamToClients, args=(self.opusencoded_data,)).start()
 
             if idxDevOut > -1:
-                opusdecoded_data = codec.decode(self.opusencoded_data)
+                # opusdecoded_data = codec.decode(self.opusencoded_data)
+                opusdecoded_data = self.set_audio_volume(codec.decode(self.opusencoded_data), self.volume)
                 self.streamOut.write(opusdecoded_data)
 
         if not self.isRecordingActive:
@@ -147,6 +158,5 @@ class AudioTranscoder:
                 clientSocket.sendto(soundData, (address, port))
                 self.dataLst.append(len(soundData))
 
-# if __name__ == '__main__':
-#     audiorec = AudioRecorder()
-#     audiorec.startRec()
+    def setVolume(self, volume):
+        self.volume = volume
