@@ -11,7 +11,7 @@ class NetworkServer:
         self.port = 9518
         self.isServerActive = False
         self.transcoder = None
-        self.UDPSockets = {}
+        self.TCPclients = {}
         self.clientsCountLabel = QLabel()
         self.serverStatusLabel = QLabel()
         self.encodedDataCountLabel = QLabel()
@@ -23,15 +23,15 @@ class NetworkServer:
 
     def stopTCPListener(self):
         self.isServerActive = False
+        self.removeAllTCPClients(notify=True)
         self.server_socket.close()
         self.updateServerStatus("Server is stopped", self.redColorPalette)
+        self.updateClientCount()
 
     def startTCPListener(self, port):
         self.isServerActive = True
         self.port = port
-        tcpListenerThread = Thread(target=self.TCPListener)
-        tcpListenerThread.setDaemon(True)
-        tcpListenerThread.start()
+        Thread(target=self.TCPListener).start()
         Timer(1.0, function=self.calculateAverage).start()
 
     def TCPListener(self):
@@ -43,9 +43,34 @@ class NetworkServer:
         while self.isServerActive:
             try:
                 client_socket, address = self.server_socket.accept()
+                self.TCPclients[address[0]] = client_socket
                 Thread(target=self.handleNetworkTCPClient, args=(address, client_socket)).start()
             except socket.error as msg:
                 print("Server socket exception: %s" % msg)
+                break
+
+        print("Main TCP listener thread finished.")
+
+    def removeTCPClient(self, address):
+        if len(self.TCPclients) > 0:
+            for clientAddressPort, socket in self.TCPclients.items():
+                if clientAddressPort.find(address) > -1:
+                    del(self.TCPclients[clientAddressPort])
+                    socket.close()
+                    print("TCP client terminated: ", address)
+                    break
+
+    def removeAllTCPClients(self, notify):
+        if len(self.TCPclients) > 0:
+            for clientAddressPort, clientSocket in self.TCPclients.items():
+                try:
+                    if notify:
+                        clientSocket.send('request=stopaudio'.encode())
+                    clientSocket.close()
+                    print("TCP client terminated: ", clientAddressPort)
+                except:
+                    pass
+            self.TCPclients = {}
 
     def setClientCountLabel(self, label):
         self.clientsCountLabel = label
@@ -92,8 +117,7 @@ class NetworkServer:
                         self.updateClientCount()
 
                     if clienttext.find("stopstream", 0, len(clienttext)) != -1:
-                        print("Client socket terminate: "+str(address[0]))
-                        client_tcp_socket.close()
+                        self.removeTCPClient(str(address[0]))
                         self.transcoder.removeUDPClient(str(address[0]))
                         self.updateClientCount()
                 else:
@@ -103,10 +127,8 @@ class NetworkServer:
 
             except socket.error as msg:
                 print("Client socket exception: %s\n" % msg)
-                client_tcp_socket.close()
-                self.transcoder.removeUDPClient(str(address[0]))
-                self.updateClientCount()
-        client_tcp_socket.close()
+
+        print("Client", address[0], "TCP listener finished")
 
     def get_default_ip_address(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

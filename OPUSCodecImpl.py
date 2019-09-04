@@ -13,10 +13,10 @@ class OpusCodec:
         self.frame_size = frame_size
 
         opus_encoder.encoder_ctl(self.encoder, ctl.set_bandwidth, opuslib.constants.BANDWIDTH_FULLBAND)
-        opus_encoder.encoder_ctl(self.encoder, ctl.set_signal, opuslib.constants.SIGNAL_VOICE)
+        opus_encoder.encoder_ctl(self.encoder, ctl.set_signal, opuslib.constants.SIGNAL_MUSIC)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_bitrate, bitrate)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_inband_fec, 1)
-        opus_encoder.encoder_ctl(self.encoder, ctl.set_packet_loss_perc, 10)
+        opus_encoder.encoder_ctl(self.encoder, ctl.set_packet_loss_perc, 12)
         opus_encoder.encoder_ctl(self.encoder, ctl.set_vbr, 1)
 
     def setBitrate(self, bitrate):

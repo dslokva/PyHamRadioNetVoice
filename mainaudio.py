@@ -85,13 +85,13 @@ class AudioTranscoder:
 
     def startRec(self, idxDevIn, idxDevOut):
         self.isRecordingActive = True
-        recThread = threading.Thread(target=self.transcodingThread, args=(idxDevIn, idxDevOut))
-        recThread.start()
+        threading.Thread(target=self.transcodingThread, args=(idxDevIn, idxDevOut)).start()
 
     def stopRec(self):
         self.isRecordingActive = False
         self.rawBytesCount = 0
         self.opusBytesCount = 0
+        self.removeAllUDPClients()
 
     def getDataLst(self):
         return self.dataLst
@@ -123,7 +123,8 @@ class AudioTranscoder:
             data = self.set_audio_volume(data, self.volume)
 
             self.opusencoded_data = codec.encode(data)
-            threading.Thread(target=self.udpStreamToClients, args=(self.opusencoded_data,)).start()
+            if len(self.UDPclients) > 0:
+                threading.Thread(target=self.udpStreamToClients, args=(self.opusencoded_data,)).start()
 
             if idxDevOut > -1:
                 opusdecoded_data = codec.decode(self.opusencoded_data)
@@ -137,6 +138,7 @@ class AudioTranscoder:
                 self.streamOut.stop_stream()
                 if self.streamOut.is_active():
                     self.streamOut.close()
+        print("Transcoding thread finished.")
 
     def addUDPClient(self, clientAddressPort, client_udp_socket):
         self.UDPclients[clientAddressPort] = client_udp_socket
@@ -146,19 +148,30 @@ class AudioTranscoder:
             for clientAddressPort, socket in self.UDPclients.items():
                 if clientAddressPort.find(address) > -1:
                     del(self.UDPclients[clientAddressPort])
+                    socket.close()
                     print("UDP client removed: ", address)
                     break
+
+    def removeAllUDPClients(self):
+        if len(self.UDPclients) > 0:
+            for clientAddressPort, clientSocket in self.UDPclients.items():
+                clientSocket.close()
+                print("UDP client removed: ", clientAddressPort)
+            self.UDPclients = {}
 
     def getUDPStreamsCount(self):
         return len(self.UDPclients)
 
     def udpStreamToClients(self, soundData):
         if len(self.UDPclients) > 0:
-            for clientAddressPort, clientSocket in self.UDPclients.items():
-                address = clientAddressPort.partition(":")[0]
-                port = int(clientAddressPort.partition(":")[2])
-                clientSocket.sendto(soundData, (address, port))
-                self.dataLst.append(len(soundData))
+            try:
+                for clientAddressPort, clientSocket in self.UDPclients.items():
+                    address = clientAddressPort.partition(":")[0]
+                    port = int(clientAddressPort.partition(":")[2])
+                    clientSocket.sendto(soundData, (address, port))
+                    self.dataLst.append(len(soundData))
+            except:
+                pass
 
     def setVolume(self, volume):
         self.volume = volume

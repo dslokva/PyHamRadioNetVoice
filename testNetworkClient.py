@@ -24,8 +24,18 @@ class MainWindow(QWidget):
         self.clientTCPSocket = None
         self.populateDeviceList()
         self.populateInternalIPAddresses()
+        self.setInitialGUIParameters()
+        self.waitCommandsFromServer = False
         self.codecBitrate = 12000
         audioPlayer.setAverageDataLabel(self.labelEncodedDataCount)
+
+    def setInitialGUIParameters(self):
+        defaultIPAddress = self.getDefaultIPAddress()
+        self.txtServerAddr.setText(defaultIPAddress)
+        index = self.comboBoxClientIPAddr.findText(defaultIPAddress, Qt.MatchFixedString)
+        if index >= 0:
+            self.comboBoxClientIPAddr.setCurrentIndex(index)
+
 
     def initUI(self):
         self.redColorPalette = QPalette()
@@ -44,7 +54,7 @@ class MainWindow(QWidget):
         self.labelServerAddr = QLabel('Server address:')
         self.labelServerPort = QLabel('Server port:')
 
-        self.txtServerAddr = QLineEdit('192.168.1.103')
+        self.txtServerAddr = QLineEdit('127.0.0.1')
         self.spinServerPort = QSpinBox()
         self.spinServerPort.setMaximum(65535)
         self.spinServerPort.setMinimum(1025)
@@ -122,15 +132,14 @@ class MainWindow(QWidget):
             if ifaceDetailsDict is not None:
                 self.comboBoxClientIPAddr.addItem(ifaceDetailsDict[0]['addr'])
 
+    def getDefaultIPAddress(self):
         gws = netifaces.gateways()
         defgw = gws.get('default')
         if defgw is not None:
             ifaceDetails = netifaces.ifaddresses(defgw[netifaces.AF_INET][1])
             ifaceDetailsDict = ifaceDetails.get(netifaces.AF_INET)
             if ifaceDetailsDict is not None:
-                index = self.comboBoxClientIPAddr.findText(ifaceDetailsDict[0]['addr'], Qt.MatchFixedString)
-                if index >= 0:
-                    self.comboBoxClientIPAddr.setCurrentIndex(index)
+                return ifaceDetailsDict[0]['addr']
 
     def chkBoxfixedClientPortClick(self):
         self.spinClientPort.setEnabled(self.chkBoxfixedClientPort.isChecked())
@@ -153,16 +162,14 @@ class MainWindow(QWidget):
 
     def exitBtnClick(self):
         if audioPlayer.isActive:
-            self.stopAudioPlaying()
+            self.stopAudioPlaying(True)
         sys.exit(0)
 
     def startStopBtnClick(self):
         if audioPlayer.isActive:
-            self.stopAudioPlaying()
-            self.startStopBtn.setText('Connect and play')
+            self.stopAudioPlaying(True)
         else:
             self.startAudioPlaying()
-            self.startStopBtn.setText('Stop')
 
         self.labelClientIPAddr.setEnabled(not audioPlayer.isActive)
         self.comboBoxClientIPAddr.setEnabled(not audioPlayer.isActive)
@@ -177,19 +184,25 @@ class MainWindow(QWidget):
 
     def startAudioPlaying(self):
         idxDevOut = self.getKeyByValue(self.devicesOut, self.comboBoxOutput.currentText())
-        if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()):
+        if self.connectToServer(self.txtServerAddr.text(), self.spinServerPort.value()) == True:
             audioPlayer.startRecv(idxDevOut, self.comboBoxClientIPAddr.currentText(), self.spinClientPort.value())
             self.labelClientStatus.setPalette(self.greenColorPalette)
+            self.startStopBtn.setText('Stop')
 
-    def stopAudioPlaying(self):
+    def stopAudioPlaying(self, sendFIN):
         try:
+            self.waitCommandsFromServer = False
             audioPlayer.stopRecv()
-            self.clientTCPSocket.send('stopstream=true'.encode())
+            if sendFIN == True:
+                self.clientTCPSocket.send('request=stopstream'.encode())
             self.clientTCPSocket.close()
-            self.labelClientStatus.setText('Client is stopped')
-            self.labelClientStatus.setPalette(self.redColorPalette)
+
         except Exception as err:
             print(str(err))
+
+        self.startStopBtn.setText('Connect and play')
+        self.labelClientStatus.setText('Client is stopped')
+        self.labelClientStatus.setPalette(self.redColorPalette)
 
     def connectToServer(self, address, port):
         try:
@@ -198,7 +211,7 @@ class MainWindow(QWidget):
             self.clientTCPSocket.connect((address, port))
 
             # send hello to server
-            initialHello = socket.gethostname() + ('|type=hello|version=1.0')
+            initialHello = socket.gethostname() + ('type=hello|version=1.0')
             self.clientTCPSocket.send(initialHello.encode())
 
             # receive server first reply
@@ -211,13 +224,32 @@ class MainWindow(QWidget):
             reply = self.clientTCPSocket.recv(1024).decode()
             print(reply)
             if reply.find("setbitrate", 0, len(reply)) != -1:
-                audioPlayer.setCodecBitrate(reply.partition("=")[2])
+                bitrate = reply.partition("=")[2]
+                audioPlayer.setCodecBitrate(bitrate)
 
-            self.labelClientStatus.setText('Connected to server: '+address)
+            self.labelClientStatus.setText('Connected to server: '+address+', offered bitrate: '+bitrate)
+            self.waitCommandsFromServer = True
+            Thread(target=self.handleMessagesFromServer, args=()).start()
+
             return True
         except socket.error as err:
             self.labelClientStatus.setText(err.strerror)
             return False
+
+    def handleMessagesFromServer(self):
+        while self.waitCommandsFromServer:
+            try:
+                reply = self.clientTCPSocket.recv(1024).decode()
+                print(reply)
+                # below we handle other commands from server
+                if reply.find("stopaudio", 0, len(reply)) != -1:
+                    self.stopAudioPlaying(False)
+                    print("Disconnect command received")
+
+            except socket.error as msg:
+                pass
+
+        print("Handle additional commands finished")
 
     def getKeyByValue(self, searchDict, searchText):
         for key, value in searchDict.items():
@@ -232,23 +264,24 @@ class StreamAudioPlayer():
         self.info = self.audioOut.get_host_api_info_by_index(0)
         self.numdevices = self.info.get('deviceCount')
         self.idxDevOut = 0
+        self.frames_per_buffer = 1920
         self.dataLst = []
         self.labelAverageDataCount = QLabel
         self.streamOut = Stream(self, rate=48000, channels=1, format=pyaudio.paInt16, input=False, output=True)
         self.streamOut.stop_stream()
 
-        self.codec = OpusCodec(channels=1, rate=48000, frame_size=3840, bitrate=codecBitrate)
+        self.codec = OpusCodec(channels=1, rate=48000, frame_size=self.frames_per_buffer, bitrate=codecBitrate)
 
     def setCodecBitrate(self, codecBitrate):
         self.codec.setBitrate(codecBitrate)
 
     def startRecv(self, devOut, intfAddr, udpPort):
-        chunk = 3840
+        chunk = self.frames_per_buffer
         self.isActive = True
         self.streamOut = self.audioOut.open(format=pyaudio.paInt16, channels=1,
                                             rate=48000, input=False, output=True,
                                             output_device_index=devOut,
-                                            frames_per_buffer=3840)
+                                            frames_per_buffer=self.frames_per_buffer)
         Thread(target=self.udpStream, args=(chunk, intfAddr, udpPort)).start()
         Timer(1.0, function=self.calculateAverage).start()
 
@@ -273,10 +306,11 @@ class StreamAudioPlayer():
 
         while self.isActive:
             soundData, addr = udpReceiveSocket.recvfrom(chunk)
-            if len(soundData) > 100:
+            if len(soundData) > 35:
                 self.dataLst.append(len(soundData))
                 opusdecoded_data = self.codec.decode(soundData)
-                self.streamOut.write(opusdecoded_data)
+                if len(opusdecoded_data) > 100:
+                    self.streamOut.write(opusdecoded_data)
         udpReceiveSocket.close()
         print("socket closed")
 
