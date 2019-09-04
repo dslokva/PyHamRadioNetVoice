@@ -195,7 +195,7 @@ class MainWindow(QWidget):
     def stopAudioPlaying(self, sendFIN):
         try:
             self.waitCommandsFromServer = False
-            audioPlayer.stopRecv()
+            audioPlayer.stopRecvAndAudio()
             if sendFIN == True:
                 self.clientTCPSocket.send('request=stopstream'.encode())
             self.clientTCPSocket.close()
@@ -288,7 +288,7 @@ class StreamAudioPlayer():
         Thread(target=self.udpStream, args=(chunk, intfAddr, udpPort)).start()
         Timer(1.0, function=self.calculateAverage).start()
 
-    def stopRecv(self):
+    def stopRecvAndAudio(self):
         self.isActive = False
         self.streamOut.stop_stream()
 
