@@ -1,5 +1,8 @@
 from PyQt5.QtGui import QColor, QPalette
 
+from OmniRigClient import OmniRigClient
+from OmniRigQTControls import OmniRigQTControls
+
 __author__ = '@sldmk'
 
 import sys
@@ -17,11 +20,14 @@ class MainWindow(QWidget):
         self.blackColorPalette = QPalette()
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
 
+        self.omniRigQTpanel = OmniRigQTControls()
         self.initUI()
+
         self.windowCenter()
         self.devicesIn = None
         self.devicesOut = None
         self.populateDeviceList()
+        omniRigCli = OmniRigClient(self.omniRigQTpanel)
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
@@ -79,24 +85,6 @@ class MainWindow(QWidget):
         self.chkBoxLivePlayback = QCheckBox('Live playback output: ')
         self.chkBoxLivePlayback.stateChanged.connect(self.chkBoxLivePlaybackClick)
 
-        self.labelRigName = QLabel("Rig is unavailable")
-        self.rigSelectGroupBox = QGroupBox("Rig select:")
-        self.radioBtnTRX1 = QRadioButton("Rig 1")
-        self.radioBtnTRX1.setChecked(True)
-        self.radioBtnTRX2 = QRadioButton("Rig 2")
-
-        vboxRigSelect = QHBoxLayout()
-        vboxRigSelect.addWidget(self.radioBtnTRX1)
-        vboxRigSelect.addWidget(self.radioBtnTRX2)
-        self.rigSelectGroupBox.setLayout(vboxRigSelect)
-
-        self.lcdTrxFrequency = QLCDNumber(9)
-        self.lcdTrxFrequency.display('14.150.00')
-        self.lcdTrxFrequency.setPalette(self.blackColorPalette)
-        self.lcdTrxFrequency.setMinimumHeight(50)
-        self.lcdTrxFrequency.setMaximumHeight(50)
-        self.lcdTrxFrequency.setMaximumWidth(275)
-
         grid = QGridLayout()
         grid.setSpacing(6)
 
@@ -126,11 +114,7 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 11, 0)
 
-        grid.addWidget(self.rigSelectGroupBox, 12, 0)
-        grid.addWidget(self.lcdTrxFrequency, 12, 1, 1, 5)
-        grid.addWidget(self.labelRigName, 13, 0, 1, 1)
-
-        grid.addWidget(QLabel(''), 14, 0)
+        grid.addLayout(self.omniRigQTpanel.getGUI(), 12, 0, 1, 5)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
