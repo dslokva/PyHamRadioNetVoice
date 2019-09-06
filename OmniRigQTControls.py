@@ -19,7 +19,7 @@ class OmniRigQTControls:
         self.rigSelectGroupBox.setLayout(hboxRigSelect)
 
         self.lcdTrxFrequency = QLCDNumber(9)
-        self.lcdTrxFrequency.display('14.150.00')
+        self.lcdTrxFrequency.display('00.000.00')
         self.lcdTrxFrequency.setPalette(self.blackColorPalette)
         self.lcdTrxFrequency.setMinimumHeight(50)
         self.lcdTrxFrequency.setMaximumHeight(50)

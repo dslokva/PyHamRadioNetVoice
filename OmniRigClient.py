@@ -13,8 +13,6 @@ class OmniRigClient:
         guiQtPanel = guipan
 
         win32.WithEvents(omnirigObject, OmniRigEventsHandler)
-        # threading.Thread(target=self.watchRigEvents).start()
-        self.watchRigEvents()
         threading.Thread(target=self.watchRigEvents, args=()).start()
 
     def watchRigEvents(self):
@@ -47,4 +45,5 @@ class OmniRigEventsHandler():
         print("OnVisibleChange")
 
     def addDotsToFreq(self, freqvalue):
+        freqTxt = str(freqvalue)
         return '111'
