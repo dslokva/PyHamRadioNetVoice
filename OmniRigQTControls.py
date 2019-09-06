@@ -6,6 +6,8 @@ class OmniRigQTControls:
     def __init__(self):
         self.blackColorPalette = QPalette()
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
+        self.redColorPalette = QPalette()
+        self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
 
         self.labelRigName = QLabel("Rig is not responding")
         self.rigSelectGroupBox = QGroupBox("Rig select:")
@@ -39,6 +41,20 @@ class OmniRigQTControls:
 
     def setDisplayFreq(self, txtFreq):
         self.lcdTrxFrequency.display(txtFreq)
+
+    def setOmniRigErrorText(self, msgText):
+        self.labelRigName.setText(msgText)
+        self.labelRigName.setPalette(self.redColorPalette)
+
+    def setRigName(self, rigType):
+        self.labelRigName.setText(rigType)
+        self.labelRigName.setPalette(self.blackColorPalette)
+
+    def disableControls(self):
+        self.rigSelectGroupBox.setEnabled(False)
+        self.lcdTrxFrequency.setEnabled(False)
+        self.radioBtnTRX1.setEnabled(False)
+        self.radioBtnTRX2.setEnabled(False)
 
     def getGUI(self):
         return self.grid
