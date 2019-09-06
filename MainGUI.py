@@ -27,7 +27,7 @@ class MainWindow(QWidget):
         self.devicesIn = None
         self.devicesOut = None
         self.populateDeviceList()
-        omniRigCli = OmniRigClient(self.omniRigQTpanel)
+        self.omniRigCli = OmniRigClient(self.omniRigQTpanel)
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
@@ -169,17 +169,20 @@ class MainWindow(QWidget):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
             self.stopNetworkServer()
+            self.stopOmniRigThread()
         sys.exit(0)
 
     def startStopBtnClick(self):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
             self.stopNetworkServer()
+            self.stopOmniRigThread()
             self.startStopBtn.setText('Start')
         else:
             self.startAudioTranscoding()
             self.startNetworkServer()
             self.startStopBtn.setText('Stop')
+
         self.spinServerPort.setEnabled(not audioTranscoder.isRecordingActive)
         self.chkBoxLivePlayback.setEnabled(not audioTranscoder.isRecordingActive)
         self.labelSrvPort.setEnabled(not audioTranscoder.isRecordingActive)
@@ -190,6 +193,9 @@ class MainWindow(QWidget):
 
     def stopNetworkServer(self):
         self.networkServer.stopTCPListener()
+
+    def stopOmniRigThread(self):
+        self.omniRigCli.setClientActive(False)
 
     def startNetworkServer(self):
         self.networkServer.startTCPListener(self.spinServerPort.value())

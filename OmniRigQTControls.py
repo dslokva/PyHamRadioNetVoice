@@ -54,6 +54,9 @@ class OmniRigQTControls:
         self.radioBtnTRX1.setEnabled(False)
         self.radioBtnTRX2.setEnabled(False)
 
+    def refreshRigInformation(self, omniRigInfo, rignum):
+        self.setDisplayFreq(omniRigInfo[rignum].getRigFreq())
+
     def getGUI(self):
         return self.grid
 
