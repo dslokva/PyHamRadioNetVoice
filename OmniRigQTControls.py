@@ -51,8 +51,6 @@ class OmniRigQTControls:
         self.labelRigName.setPalette(self.blackColorPalette)
 
     def disableControls(self):
-        self.rigSelectGroupBox.setEnabled(False)
-        self.lcdTrxFrequency.setEnabled(False)
         self.radioBtnTRX1.setEnabled(False)
         self.radioBtnTRX2.setEnabled(False)
 
