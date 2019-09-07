@@ -169,7 +169,7 @@ class MainWindow(QWidget):
         if audioTranscoder.isRecordingActive:
             self.stopAudioTranscoding()
             self.stopNetworkServer()
-            self.stopOmniRigThread()
+        self.stopOmniRigThread()
         sys.exit(0)
 
     def startStopBtnClick(self):

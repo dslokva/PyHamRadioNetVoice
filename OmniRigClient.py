@@ -3,6 +3,7 @@ import time
 import pythoncom
 import win32com.client as win32
 import win32event
+from win32com.test.policySemantics import Error
 
 global omnirigObject
 global guiQtPanel
@@ -23,21 +24,20 @@ class OmniRigClient:
 
         if self.omniRigActive:
             win32.WithEvents(omnirigObject, OmniRigEventsHandler)
-            threading.Thread(target=self.watchRigEvents, args=()).start()
-
-    def watchRigEvents(self):
-        while self.omniRigActive:
-            evt = win32event.CreateEvent(None, 0, 0, None)
-            rc = win32event.MsgWaitForMultipleObjects((evt,), 0, win32event.INFINITE, win32event.QS_ALLEVENTS)
-            if rc == win32event.WAIT_OBJECT_0 + 1:
-                pythoncom.PumpWaitingMessages()
-            time.sleep(.1)
-
-            # a = input()
-            # if a == "s":
-            #     omnirig.Rig2.SetSimplexMode('7108500')
-            #     omnirig.Rig2.Mode = '67108864' #LSB
-            # omnirig.Rig2.Mode = '33554432' #USB
+    #         threading.Thread(target=self.watchRigEvents, args=()).start()
+    #
+    # def watchRigEvents(self):
+    #     pass
+        # while self.omniRigActive:
+        #     evt = win32event.CreateEvent(None, 0, 0, None)
+        #     rc = win32event.MsgWaitForMultipleObjects((evt,), 0, win32event.INFINITE, win32event.QS_ALLEVENTS)
+        #     if rc == win32event.WAIT_OBJECT_0 + 1:
+        #         pythoncom.PumpWaitingMessages()
+        #     time.sleep(.1)
+        #     print("OmniRig watch thread terminated")
+#     omnirig.Rig2.SetSimplexMode('7108500')
+#     omnirig.Rig2.Mode = '67108864' #LSB
+#     omnirig.Rig2.Mode = '33554432' #USB
 
     def setClientActive(self, state):
         self.omniRigActive = state
@@ -73,7 +73,7 @@ class RigParams:
     def getRigMode(self):
         return self.rigMode
 
-class OmniRigEventsHandler():
+class OmniRigEventsHandler:
     def __init__(self):
         self.omniRigInfo = {
             1: RigParams,
@@ -91,7 +91,7 @@ class OmniRigEventsHandler():
             self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
         else:
             self.rig2.setRigStatus(omnirigObject.Rig2.StatusStr)
-        guiQtPanel.refreshRigInformation(self.omniRigInfo, rignum)
+        guiQtPanel.refreshRigInformation(self.omniRigInfo)
 
     def OnParamsChange(self, rignum, params):
         rig1ModeText = 'USB'
@@ -114,11 +114,7 @@ class OmniRigEventsHandler():
             self.rig2.setRigType(omnirigObject.Rig2.RigType)
             self.rig2.setRigMode(rig2ModeText)
 
-        guiQtPanel.refreshRigInformation(self.omniRigInfo, rignum)
+        guiQtPanel.refreshRigInformation(self.omniRigInfo)
 
     def OnVisibleChange(self):
         print("OnVisibleChange")
-
-    def addDotsToFreq(self, freqvalue):
-        freqTxt = str(freqvalue)
-        return '111'

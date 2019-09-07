@@ -46,7 +46,7 @@ class OmniRigQTControls:
         self.labelRigName.setText(msgText)
         self.labelRigName.setPalette(self.redColorPalette)
 
-    def setRigName(self, rigType):
+    def setRigStatus(self, rigType):
         self.labelRigName.setText(rigType)
         self.labelRigName.setPalette(self.blackColorPalette)
 
@@ -54,8 +54,24 @@ class OmniRigQTControls:
         self.radioBtnTRX1.setEnabled(False)
         self.radioBtnTRX2.setEnabled(False)
 
-    def refreshRigInformation(self, omniRigInfo, rignum):
-        self.setDisplayFreq(omniRigInfo[rignum].getRigFreq())
+    def refreshRigInformation(self, omniRigInfo):
+        rignum = 2
+        if self.radioBtnTRX1.isChecked():
+            rignum = 1
+        self.setDisplayFreq(self.addDotsToFreq(omniRigInfo[rignum].getRigFreq()))
+        self.setRigStatus(omniRigInfo[rignum].getRigType() + ": " + omniRigInfo[rignum].getRigStatus())
+
+    def addDotsToFreq(self, freqvalue):
+        freqTxt = str(freqvalue)
+        print(freqTxt)
+        mainPart = freqTxt[:7]
+        firstPar = freqTxt[:-6]
+        middlePart = mainPart[1:4]
+        lastPart = mainPart[4:]
+        print(firstPar)
+        # middlePart = freqTxt[3:]
+        # newTxt = freqTxt[len(freqTxt)-5:]+"."+middlePart+"."+lastPart
+        return firstPar+"."+middlePart+"."+lastPart
 
     def getGUI(self):
         return self.grid
