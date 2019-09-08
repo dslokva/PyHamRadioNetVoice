@@ -28,16 +28,16 @@ class OmniRigClient:
     #
     # def watchRigEvents(self):
     #     pass
-        # while self.omniRigActive:
-        #     evt = win32event.CreateEvent(None, 0, 0, None)
-        #     rc = win32event.MsgWaitForMultipleObjects((evt,), 0, win32event.INFINITE, win32event.QS_ALLEVENTS)
-        #     if rc == win32event.WAIT_OBJECT_0 + 1:
-        #         pythoncom.PumpWaitingMessages()
-        #     time.sleep(.1)
-        #     print("OmniRig watch thread terminated")
-#     omnirig.Rig2.SetSimplexMode('7108500')
-#     omnirig.Rig2.Mode = '67108864' #LSB
-#     omnirig.Rig2.Mode = '33554432' #USB
+    # while self.omniRigActive:
+    #     evt = win32event.CreateEvent(None, 0, 0, None)
+    #     rc = win32event.MsgWaitForMultipleObjects((evt,), 0, win32event.INFINITE, win32event.QS_ALLEVENTS)
+    #     if rc == win32event.WAIT_OBJECT_0 + 1:
+    #         pythoncom.PumpWaitingMessages()
+    #     time.sleep(.1)
+    #     print("OmniRig watch thread terminated")
+    #     omnirig.Rig2.SetSimplexMode('7108500')
+    #     omnirig.Rig2.Mode = '67108864' #LSB
+    #     omnirig.Rig2.Mode = '33554432' #USB
 
     def setClientActive(self, state):
         self.omniRigActive = state
@@ -89,7 +89,7 @@ class OmniRigEventsHandler:
 
     def OnStatusChange(self, rignum):
         print("OnStatusChange. Rig#" + str(rignum))
-        self.updateRigTextInfo(rignum)
+        self.updateRigTextInfo()
 
     def OnParamsChange(self, rignum, params):
         self.rig1ModeText = 'USB'
@@ -101,19 +101,19 @@ class OmniRigEventsHandler:
             self.rig2ModeText = 'LSB'
 
         print("OnParamsChange. Rig#", rignum)
-        self.updateRigTextInfo(rignum)
+        self.updateRigTextInfo()
 
-    def updateRigTextInfo(self, rignum):
-        if rignum == 1:
-            self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
-            self.rig1.setRigFreq(omnirigObject.Rig1.Freq)
-            self.rig1.setRigType(omnirigObject.Rig1.RigType)
-            self.rig1.setRigMode(self.rig1ModeText)
-        else:
-            self.rig2.setRigStatus(omnirigObject.Rig2.StatusStr)
-            self.rig2.setRigFreq(omnirigObject.Rig2.Freq)
-            self.rig2.setRigType(omnirigObject.Rig2.RigType)
-            self.rig2.setRigMode(self.rig2ModeText)
+    def updateRigTextInfo(self):
+        self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
+        self.rig1.setRigFreq(omnirigObject.Rig1.Freq)
+        self.rig1.setRigType(omnirigObject.Rig1.RigType)
+        self.rig1.setRigMode(self.rig1ModeText)
+
+        self.rig2.setRigStatus(omnirigObject.Rig2.StatusStr)
+        self.rig2.setRigFreq(omnirigObject.Rig2.Freq)
+        self.rig2.setRigType(omnirigObject.Rig2.RigType)
+        self.rig2.setRigMode(self.rig2ModeText)
+
         guiQtPanel.setRigInformation(self.omniRigInfo)
 
     def OnVisibleChange(self):

@@ -114,7 +114,7 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 11, 0)
 
-        grid.addLayout(self.omniRigQTpanel.getGUI(), 12, 0, 1, 5)
+        grid.addLayout(self.omniRigQTpanel.getGUI(), 12, 0, 1, 6)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)

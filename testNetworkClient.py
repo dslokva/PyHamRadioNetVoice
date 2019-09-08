@@ -172,6 +172,9 @@ class MainWindow(QWidget):
         else:
             self.startAudioPlaying()
 
+        self.switchUIControls()
+
+    def switchUIControls(self):
         self.labelClientIPAddr.setEnabled(not audioPlayer.isActive)
         self.comboBoxClientIPAddr.setEnabled(not audioPlayer.isActive)
         self.labelOutput.setEnabled(not audioPlayer.isActive)
@@ -206,6 +209,7 @@ class MainWindow(QWidget):
         self.startStopBtn.setText('Connect and play')
         self.labelClientStatus.setText('Client is stopped')
         self.labelClientStatus.setPalette(self.redColorPalette)
+        self.switchUIControls()
 
     def connectToServer(self, address, port):
         try:

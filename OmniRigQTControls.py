@@ -37,7 +37,6 @@ class OmniRigQTControls:
 
         grid = QGridLayout()
         grid.setSpacing(3)
-
         grid.addWidget(self.rigSelectGroupBox, 1, 0)
         grid.addWidget(self.lcdTrxFrequency, 1, 1, 1, 5)
 
@@ -74,6 +73,8 @@ class OmniRigQTControls:
 
     def addDotsToFreq(self, freqvalue):
         freqTxt = str(freqvalue)
+        if len(freqTxt) < 6:
+            freqTxt = '00000000'
         firstPart = freqTxt[:-6]
         if len(freqTxt) == 8:
             mainPart = freqTxt[:7]
