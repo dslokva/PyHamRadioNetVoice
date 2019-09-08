@@ -72,6 +72,15 @@ class NetworkServer:
                     pass
             self.TCPclients = {}
 
+    def sendToAllTCPClients(self, textToSend):
+        if len(self.TCPclients) > 0:
+            print("Send to All TCP clients: " + str(textToSend))
+            for clientAddressPort, clientSocket in self.TCPclients.items():
+                try:
+                    clientSocket.send(textToSend.encode())
+                except:
+                    pass
+
     def setClientCountLabel(self, label):
         self.clientsCountLabel = label
 

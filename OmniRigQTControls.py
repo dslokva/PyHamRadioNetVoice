@@ -55,14 +55,17 @@ class OmniRigQTControls:
         self.labelRigName.setText(rigType)
         self.labelRigName.setPalette(self.blackColorPalette)
 
+    def getRigsInformation(self):
+        return self.omniRigInfo
+
     def disableControls(self):
         self.radioBtnTRX1.setEnabled(False)
         self.radioBtnTRX2.setEnabled(False)
 
     def refreshRigInformation(self):
-        rignum = 2
+        rignum = '2'
         if self.radioBtnTRX1.isChecked():
-            rignum = 1
+            rignum = '1'
         if len(self.omniRigInfo) > 1:
             self.setDisplayFreq(self.addDotsToFreq(self.omniRigInfo[rignum].getRigFreq()))
             self.setRigStatus(self.omniRigInfo[rignum].getRigType() + ": " + self.omniRigInfo[rignum].getRigStatus())

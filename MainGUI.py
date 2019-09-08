@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QColor, QPalette
-
-from OmniRigClient import OmniRigClient
+import json
+from OmniRigClientImpl import OmniRigClient
 from OmniRigQTControls import OmniRigQTControls
 
 __author__ = '@sldmk'
@@ -10,7 +10,7 @@ from mainaudio import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
     QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber, QSlider, QGroupBox, QRadioButton
 from PyQt5.QtCore import Qt
-from networkServer import NetworkServer
+from NetworkServer import NetworkServer
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -27,7 +27,7 @@ class MainWindow(QWidget):
         self.devicesIn = None
         self.devicesOut = None
         self.populateDeviceList()
-        self.omniRigCli = OmniRigClient(self.omniRigQTpanel)
+        self.omniRigCli = OmniRigClient(self.omniRigQTpanel, self.rigsInfoChangeEvent)
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
@@ -218,6 +218,22 @@ class MainWindow(QWidget):
     def volumeChangeEvent(self):
         self.labelVolumeValue.setText(str((self.sliderVolume.value()*10)-100)+"%")
         audioTranscoder.setVolume(self.sliderVolume.value()*10)
+
+    def rigsInfoChangeEvent(self):
+        command = "request=rigsinfo|"
+        dict = self.omniRigQTpanel.getRigsInformation()
+
+        f1 = "f1="+str(dict['1'].getRigFreq())+","
+        t1 = "t1="+dict['1'].getRigType()+","
+        m1 = "m1="+dict['1'].getRigMode()+","
+        s1 = "s1="+dict['1'].getRigStatus()+","
+
+        f2 = "f2="+str(dict['2'].getRigFreq())+","
+        t2 = "t2="+dict['2'].getRigType()+","
+        m2 = "m2="+dict['2'].getRigMode()+","
+        s2 = "s2="+dict['2'].getRigStatus()
+        command = command + f1 + t1 + m1 + s1 + f2 + t2 + m2 + s2
+        self.networkServer.sendToAllTCPClients(command)
 
 if __name__ == '__main__':
     audioTranscoder = AudioTranscoder(24000)

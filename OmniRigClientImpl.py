@@ -7,14 +7,17 @@ from win32com.test.policySemantics import Error
 
 global omnirigObject
 global guiQtPanel
+global changeEventFunction
 
 class OmniRigClient:
-    def __init__(self, guipan):
+    def __init__(self, guiPanel, changeEventFunc):
         global guiQtPanel
         global omnirigObject
+        global changeEventFunction
 
         self.omniRigActive = False
-        guiQtPanel = guipan
+        guiQtPanel = guiPanel
+        changeEventFunction = changeEventFunc
         try:
             omnirigObject = win32.gencache.EnsureDispatch('OmniRig.OmniRigX')
             self.omniRigActive = True
@@ -76,34 +79,36 @@ class RigParams:
 class OmniRigEventsHandler:
     def __init__(self):
         self.omniRigInfo = {
-            1: RigParams,
-            2: RigParams
+            '1': RigParams,
+            '2': RigParams
         }
 
         self.rig1ModeText = ''
         self.rig2ModeText = ''
         self.rig1 = RigParams()
         self.rig2 = RigParams()
-        self.omniRigInfo[1] = self.rig1
-        self.omniRigInfo[2] = self.rig2
+        self.omniRigInfo['1'] = self.rig1
+        self.omniRigInfo['2'] = self.rig2
 
     def OnStatusChange(self, rignum):
         print("OnStatusChange. Rig#" + str(rignum))
         self.updateRigTextInfo()
 
     def OnParamsChange(self, rignum, params):
+        self.getTextMode()
+        print("OnParamsChange. Rig#" + str(rignum))
+        self.updateRigTextInfo()
+
+    def getTextMode(self):
         self.rig1ModeText = 'USB'
         if omnirigObject.Rig1.Mode == 67108864:
             self.rig1ModeText = 'LSB'
-
         self.rig2ModeText = 'USB'
         if omnirigObject.Rig2.Mode == 67108864:
             self.rig2ModeText = 'LSB'
 
-        print("OnParamsChange. Rig#", rignum)
-        self.updateRigTextInfo()
-
     def updateRigTextInfo(self):
+        self.getTextMode()
         self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
         self.rig1.setRigFreq(omnirigObject.Rig1.Freq)
         self.rig1.setRigType(omnirigObject.Rig1.RigType)
@@ -115,6 +120,7 @@ class OmniRigEventsHandler:
         self.rig2.setRigMode(self.rig2ModeText)
 
         guiQtPanel.setRigInformation(self.omniRigInfo)
+        changeEventFunction()
 
     def OnVisibleChange(self):
         print("OnVisibleChange")

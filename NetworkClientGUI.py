@@ -1,6 +1,8 @@
 import netifaces as netifaces
 from PyQt5.uic.properties import QtGui
 
+from OmniRigQTControls import OmniRigQTControls
+
 __author__ = '@sldmk'
 
 import random
@@ -19,6 +21,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.omniRigQTpanel = OmniRigQTControls()
         self.initUI()
         self.windowCenter()
         self.devicesOut = None
@@ -111,6 +114,8 @@ class MainWindow(QWidget):
         grid.addWidget(QLabel(''), 8, 0)
 
         grid.addWidget(self.labelClientStatus, 9, 0, 1, 4)
+
+        grid.addLayout(self.omniRigQTpanel.getGUI(), 10, 0, 1, 6)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -253,7 +258,10 @@ class MainWindow(QWidget):
                     self.stopAudioPlaying(False)
                     print("Disconnect command received")
 
+                if reply.find("rigsinfo", 0, len(reply)) != -1:
+                    print(reply)
             except socket.error as msg:
+                print(msg)
                 pass
 
         print("Handle additional commands finished")
