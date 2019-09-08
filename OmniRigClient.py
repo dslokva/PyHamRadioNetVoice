@@ -80,6 +80,8 @@ class OmniRigEventsHandler:
             2: RigParams
         }
 
+        self.rig1ModeText = ''
+        self.rig2ModeText = ''
         self.rig1 = RigParams()
         self.rig2 = RigParams()
         self.omniRigInfo[1] = self.rig1
@@ -87,34 +89,32 @@ class OmniRigEventsHandler:
 
     def OnStatusChange(self, rignum):
         print("OnStatusChange. Rig#" + str(rignum))
-        if rignum == 1:
-            self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
-        else:
-            self.rig2.setRigStatus(omnirigObject.Rig2.StatusStr)
-        guiQtPanel.refreshRigInformation(self.omniRigInfo)
+        self.updateRigTextInfo(rignum)
 
     def OnParamsChange(self, rignum, params):
-        rig1ModeText = 'USB'
+        self.rig1ModeText = 'USB'
         if omnirigObject.Rig1.Mode == 67108864:
-            rig1ModeText = 'LSB'
+            self.rig1ModeText = 'LSB'
 
-        rig2ModeText = 'USB'
+        self.rig2ModeText = 'USB'
         if omnirigObject.Rig2.Mode == 67108864:
-            rig2ModeText = 'LSB'
+            self.rig2ModeText = 'LSB'
 
         print("OnParamsChange. Rig#", rignum)
+        self.updateRigTextInfo(rignum)
+
+    def updateRigTextInfo(self, rignum):
         if rignum == 1:
             self.rig1.setRigStatus(omnirigObject.Rig1.StatusStr)
             self.rig1.setRigFreq(omnirigObject.Rig1.Freq)
             self.rig1.setRigType(omnirigObject.Rig1.RigType)
-            self.rig1.setRigMode(rig1ModeText)
+            self.rig1.setRigMode(self.rig1ModeText)
         else:
             self.rig2.setRigStatus(omnirigObject.Rig2.StatusStr)
             self.rig2.setRigFreq(omnirigObject.Rig2.Freq)
             self.rig2.setRigType(omnirigObject.Rig2.RigType)
-            self.rig2.setRigMode(rig2ModeText)
-
-        guiQtPanel.refreshRigInformation(self.omniRigInfo)
+            self.rig2.setRigMode(self.rig2ModeText)
+        guiQtPanel.setRigInformation(self.omniRigInfo)
 
     def OnVisibleChange(self):
         print("OnVisibleChange")
