@@ -27,7 +27,8 @@ class MainWindow(QWidget):
         self.devicesIn = None
         self.devicesOut = None
         self.populateDeviceList()
-        self.omniRigCli = OmniRigClient(self.omniRigQTpanel, self.rigsInfoChangeEvent)
+        self.omniRigClientImpl = OmniRigClient(self.omniRigQTpanel, self.rigsInfoChangeEvent)
+        self.omniRigQTpanel.setOmnirigObject(self.omniRigClientImpl)
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
@@ -195,7 +196,7 @@ class MainWindow(QWidget):
         self.networkServer.stopTCPListener()
 
     def stopOmniRigThread(self):
-        self.omniRigCli.setClientActive(False)
+        self.omniRigClientImpl.setClientActive(False)
 
     def startNetworkServer(self):
         self.networkServer.startTCPListener(self.spinServerPort.value())

@@ -289,6 +289,8 @@ class MainWindow(QWidget):
                     self.omniRigQTpanel.setRigInformation(self.omniRigInfo)
             except socket.error as msg:
                 print(msg)
+                audioPlayer.stopRecvAndAudio()
+                self.waitCommandsFromServer = False
                 pass
         print("Handle additional commands finished")
 

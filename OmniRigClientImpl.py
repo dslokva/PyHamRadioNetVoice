@@ -1,11 +1,5 @@
-import threading
-import time
-import pythoncom
 import win32com.client as win32
-import win32event
-from win32com.test.policySemantics import Error
-
-import RigParams
+from RigParams import RigParams
 
 global omnirigObject
 global guiQtPanel

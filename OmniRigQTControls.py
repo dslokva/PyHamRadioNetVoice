@@ -1,9 +1,11 @@
 from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNumber, QVBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNumber, QVBoxLayout, QGridLayout, \
+    QPushButton
 
 
 class OmniRigQTControls:
     def __init__(self):
+        self.omnirigObject = None
         self.omniRigInfo = {}
         self.blackColorPalette = QPalette()
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
@@ -40,9 +42,32 @@ class OmniRigQTControls:
         grid.addWidget(self.rigSelectGroupBox, 1, 0)
         grid.addWidget(self.lcdTrxFrequency, 1, 1, 1, 5)
 
+        self.labelRigModeLSB = QLabel('LSB')
+        self.labelRigModeUSB = QLabel('USB')
+        self.btnOmniRigShow = QPushButton("Setup OmniRig")
+        self.btnOmniRigShow.clicked.connect(self.btnOmniRigShowClick)
+
+        hboxRigModeSetup = QHBoxLayout()
+        hboxRigModeSetup.addWidget(self.labelRigModeLSB)
+        hboxRigModeSetup.addWidget(self.labelRigModeUSB)
+        hboxRigModeSetup.addWidget(self.btnOmniRigShow)
+
+        grid2 = QGridLayout()
+        grid2.setSpacing(3)
+        grid2.addWidget(self.labelRigName, 1, 0)
+        grid2.addLayout(hboxRigModeSetup, 1, 1)
+
         self.vboxMainLayout = QVBoxLayout()
         self.vboxMainLayout.addLayout(grid)
-        self.vboxMainLayout.addWidget(self.labelRigName)
+        self.vboxMainLayout.addLayout(grid2)
+
+    def setOmnirigObject(self, omnirigObject):
+        self.omnirigObject = omnirigObject
+
+    def btnOmniRigShowClick(self):
+        if self.omnirigObject is not None:
+            self.omnirigObject.Rig2.Mode = '33554432'
+            pass
 
     def setDisplayFreq(self, txtFreq):
         self.lcdTrxFrequency.display(txtFreq)
