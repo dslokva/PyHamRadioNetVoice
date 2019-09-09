@@ -6,7 +6,7 @@ from OmniRigQTControls import OmniRigQTControls
 __author__ = '@sldmk'
 
 import sys
-from mainaudio import AudioTranscoder
+from AudioTranscoder import AudioTranscoder
 from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, \
     QComboBox, QGridLayout, QCheckBox, QSpinBox, QLCDNumber, QSlider, QGroupBox, QRadioButton
 from PyQt5.QtCore import Qt

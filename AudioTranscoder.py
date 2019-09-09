@@ -1,7 +1,6 @@
-import numpy
-
 __author__ = '@sldmk'
 
+import numpy
 from OPUSCodecImpl import OpusCodec
 import pyaudio
 from pyaudio import Stream
