@@ -38,6 +38,10 @@ class OmniRigClient:
     #     omnirig.Rig2.Mode = '67108864' #LSB
     #     omnirig.Rig2.Mode = '33554432' #USB
 
+    def getOmniRigObject(self):
+        global omnirigObject
+        return omnirigObject
+
     def setClientActive(self, state):
         self.omniRigActive = state
 

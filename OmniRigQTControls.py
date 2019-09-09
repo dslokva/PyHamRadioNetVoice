@@ -44,13 +44,17 @@ class OmniRigQTControls:
 
         self.labelRigModeLSB = QLabel('LSB')
         self.labelRigModeUSB = QLabel('USB')
-        self.btnOmniRigShow = QPushButton("Setup OmniRig")
-        self.btnOmniRigShow.clicked.connect(self.btnOmniRigShowClick)
+        self.btnOmniRigUSB = QPushButton("USB")
+        self.btnOmniRigUSB.clicked.connect(self.btnOmniUSBClick)
+
+        self.btnOmniRigLSB = QPushButton("LSB")
+        self.btnOmniRigLSB.clicked.connect(self.btnOmniLSBClick)
 
         hboxRigModeSetup = QHBoxLayout()
         hboxRigModeSetup.addWidget(self.labelRigModeLSB)
         hboxRigModeSetup.addWidget(self.labelRigModeUSB)
-        hboxRigModeSetup.addWidget(self.btnOmniRigShow)
+        hboxRigModeSetup.addWidget(self.btnOmniRigLSB)
+        hboxRigModeSetup.addWidget(self.btnOmniRigUSB)
 
         grid2 = QGridLayout()
         grid2.setSpacing(3)
@@ -64,10 +68,19 @@ class OmniRigQTControls:
     def setOmnirigObject(self, omnirigObject):
         self.omnirigObject = omnirigObject
 
-    def btnOmniRigShowClick(self):
+    def btnOmniLSBClick(self):
         if self.omnirigObject is not None:
-            self.omnirigObject.Rig2.Mode = '33554432'
-            pass
+            if self.radioBtnTRX1.isChecked():
+                self.omnirigObject.Rig1.Mode = '67108864'
+            else:
+                self.omnirigObject.Rig2.Mode = '67108864'
+
+    def btnOmniUSBClick(self):
+        if self.omnirigObject is not None:
+            if self.radioBtnTRX1.isChecked():
+                self.omnirigObject.Rig1.Mode = '33554432'
+            else:
+                self.omnirigObject.Rig2.Mode = '33554432'
 
     def setDisplayFreq(self, txtFreq):
         self.lcdTrxFrequency.display(txtFreq)

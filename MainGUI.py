@@ -28,7 +28,7 @@ class MainWindow(QWidget):
         self.devicesOut = None
         self.populateDeviceList()
         self.omniRigClientImpl = OmniRigClient(self.omniRigQTpanel, self.rigsInfoChangeEvent)
-        self.omniRigQTpanel.setOmnirigObject(self.omniRigClientImpl)
+        self.omniRigQTpanel.setOmnirigObject(self.omniRigClientImpl.getOmniRigObject())
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
