@@ -1,6 +1,9 @@
+import re
+
 import netifaces as netifaces
 from PyQt5.uic.properties import QtGui
 
+from RigParams import RigParams
 from OmniRigQTControls import OmniRigQTControls
 
 __author__ = '@sldmk'
@@ -259,11 +262,34 @@ class MainWindow(QWidget):
                     print("Disconnect command received")
 
                 if reply.find("rigsinfo", 0, len(reply)) != -1:
-                    print(reply)
+                    m = re.search('.*rigsinfo\|f1=(\d+),t1=(.+),m1=(\w+),s1=(.+),f2=(\d+),t2=(.+),m2=(\w+),s2=(.+).*', reply)
+
+                    self.omniRigInfo = {
+                        '1': RigParams,
+                        '2': RigParams
+                    }
+
+                    self.rig1ModeText = ''
+                    self.rig2ModeText = ''
+                    self.rig1 = RigParams()
+                    self.rig2 = RigParams()
+                    self.omniRigInfo['1'] = self.rig1
+                    self.omniRigInfo['2'] = self.rig2
+
+                    self.rig1.setRigStatus(m.group(4))
+                    self.rig1.setRigFreq(m.group(1))
+                    self.rig1.setRigType(m.group(2))
+                    self.rig1.setRigMode(m.group(3))
+
+                    self.rig2.setRigStatus(m.group(8))
+                    self.rig2.setRigFreq(m.group(5))
+                    self.rig2.setRigType(m.group(6))
+                    self.rig2.setRigMode(m.group(7))
+
+                    self.omniRigQTpanel.setRigInformation(self.omniRigInfo)
             except socket.error as msg:
                 print(msg)
                 pass
-
         print("Handle additional commands finished")
 
     def getKeyByValue(self, searchDict, searchText):
