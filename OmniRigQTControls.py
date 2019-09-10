@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QPalette, QColor
+from PyQt5.QtGui import QPalette, QColor, QFont
 from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNumber, QVBoxLayout, QGridLayout, \
     QPushButton
 
@@ -12,6 +12,10 @@ class OmniRigQTControls:
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
         self.redColorPalette = QPalette()
         self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
+        self.boldFont = QFont()
+        self.boldFont.setBold(True)
+        self.regularFont = QFont()
+        self.regularFont.setBold(False)
 
         self.labelRigName = QLabel("Rig is not responding")
         self.rigSelectGroupBox = QGroupBox("Rig select:")
@@ -44,9 +48,11 @@ class OmniRigQTControls:
         grid.addWidget(self.lcdTrxFrequency, 1, 1, 1, 5)
 
         self.labelRigModeLSB = QLabel('LSB')
+        self.labelRigModeLSB.setFont(self.boldFont)
         self.labelRigModeLSB.setEnabled(False)
 
         self.labelRigModeUSB = QLabel('USB')
+        self.labelRigModeUSB.setFont(self.boldFont)
         self.labelRigModeUSB.setEnabled(False)
 
         self.btnOmniRigUSB = QPushButton("USB")
@@ -112,6 +118,13 @@ class OmniRigQTControls:
         if len(self.omniRigInfo) > 1:
             self.setDisplayFreq(self.addDotsToFreq(self.omniRigInfo[rignum].getRigFreq()))
             self.setRigStatus(self.omniRigInfo[rignum].getRigType() + ": " + self.omniRigInfo[rignum].getRigStatus())
+
+        if self.omniRigInfo[rignum].getRigMode() == 'LSB':
+            self.labelRigModeUSB.setEnabled(False)
+            self.labelRigModeLSB.setEnabled(True)
+        else:
+            self.labelRigModeUSB.setEnabled(True)
+            self.labelRigModeLSB.setEnabled(False)
 
     def setRigInformation(self, omniRigInfo):
         self.omniRigInfo = omniRigInfo
