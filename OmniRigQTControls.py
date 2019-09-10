@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNu
 
 
 class OmniRigQTControls:
-    def __init__(self):
+    def __init__(self, operatingAsClient):
+        self.operatingAsClient = operatingAsClient
         self.omnirigObject = None
         self.omniRigInfo = {}
         self.blackColorPalette = QPalette()
@@ -43,7 +44,11 @@ class OmniRigQTControls:
         grid.addWidget(self.lcdTrxFrequency, 1, 1, 1, 5)
 
         self.labelRigModeLSB = QLabel('LSB')
+        self.labelRigModeLSB.setEnabled(False)
+
         self.labelRigModeUSB = QLabel('USB')
+        self.labelRigModeUSB.setEnabled(False)
+
         self.btnOmniRigUSB = QPushButton("USB")
         self.btnOmniRigUSB.clicked.connect(self.btnOmniUSBClick)
 

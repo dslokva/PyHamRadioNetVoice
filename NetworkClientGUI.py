@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.omniRigQTpanel = OmniRigQTControls()
+        self.omniRigQTpanel = OmniRigQTControls(True)
         self.initUI()
         self.windowCenter()
         self.devicesOut = None

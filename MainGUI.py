@@ -20,7 +20,7 @@ class MainWindow(QWidget):
         self.blackColorPalette = QPalette()
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
 
-        self.omniRigQTpanel = OmniRigQTControls()
+        self.omniRigQTpanel = OmniRigQTControls(False)
         self.initUI()
 
         self.windowCenter()
