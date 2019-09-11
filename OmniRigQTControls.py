@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPalette, QColor, QFont
 from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNumber, QVBoxLayout, QGridLayout, \
     QPushButton
@@ -19,6 +20,7 @@ class OmniRigQTControls:
 
         self.labelRigName = QLabel("Rig is not responding")
         self.rigSelectGroupBox = QGroupBox("Rig select:")
+
         self.radioBtnTRX1 = QRadioButton("Rig 1")
         self.radioBtnTRX1.setChecked(True)
         self.radioBtnTRX1.toggled.connect(self.refreshRigInformation)
@@ -28,7 +30,10 @@ class OmniRigQTControls:
         hboxRigSelect = QHBoxLayout()
         hboxRigSelect.addWidget(self.radioBtnTRX1)
         hboxRigSelect.addWidget(self.radioBtnTRX2)
+        hboxRigSelect.addWidget(self.labelRigName)
+        hboxRigSelect.addStretch()
         self.rigSelectGroupBox.setLayout(hboxRigSelect)
+        self.rigSelectGroupBox.setMaximumWidth(360)
 
         self.lcdTrxFrequency = QLCDNumber(10)
         self.lcdTrxFrequency.display('00.000.00')
@@ -36,16 +41,7 @@ class OmniRigQTControls:
         self.lcdTrxFrequency.setMinimumHeight(50)
         self.lcdTrxFrequency.setMaximumHeight(50)
         self.lcdTrxFrequency.setMaximumWidth(275)
-
-        self.vboxMainLayout = QVBoxLayout()
-        self.vboxMainLayout.addWidget(self.rigSelectGroupBox)
-        self.vboxMainLayout.addWidget(self.lcdTrxFrequency)
-        self.vboxMainLayout.addWidget(self.labelRigName)
-
-        grid = QGridLayout()
-        grid.setSpacing(3)
-        grid.addWidget(self.rigSelectGroupBox, 1, 0)
-        grid.addWidget(self.lcdTrxFrequency, 1, 1, 1, 5)
+        self.lcdTrxFrequency.setMinimumWidth(275)
 
         self.labelRigModeLSB = QLabel('LSB')
         self.labelRigModeLSB.setFont(self.boldFont)
@@ -55,26 +51,44 @@ class OmniRigQTControls:
         self.labelRigModeUSB.setFont(self.boldFont)
         self.labelRigModeUSB.setEnabled(False)
 
+        vboxMiddlePanel = QVBoxLayout()
+        vboxMiddlePanel.addWidget(self.labelRigModeLSB)
+        vboxMiddlePanel.addWidget(self.labelRigModeUSB)
+
+        hboxMiddlePanel = QHBoxLayout()
+        hboxMiddlePanel.addLayout(vboxMiddlePanel)
+        hboxMiddlePanel.addStretch()
+
+        self.btnBack500Hz = QPushButton("<--")
+        self.btnBack500Hz.setFixedWidth(50)
+
+        self.btnForward500Hz = QPushButton("-->")
+        self.btnForward500Hz.setFixedWidth(50)
+
         self.btnOmniRigUSB = QPushButton("USB")
         self.btnOmniRigUSB.clicked.connect(self.btnOmniUSBClick)
+        self.btnOmniRigUSB.setFixedWidth(50)
 
         self.btnOmniRigLSB = QPushButton("LSB")
         self.btnOmniRigLSB.clicked.connect(self.btnOmniLSBClick)
+        self.btnOmniRigLSB.setFixedWidth(50)
 
-        hboxRigModeSetup = QHBoxLayout()
-        hboxRigModeSetup.addWidget(self.labelRigModeLSB)
-        hboxRigModeSetup.addWidget(self.labelRigModeUSB)
-        hboxRigModeSetup.addWidget(self.btnOmniRigLSB)
-        hboxRigModeSetup.addWidget(self.btnOmniRigUSB)
+        hboxRigCATControl = QHBoxLayout()
+        hboxRigCATControl.addWidget(self.btnBack500Hz)
+        hboxRigCATControl.addWidget(self.btnForward500Hz)
+        hboxRigCATControl.addStretch()
+        hboxRigCATControl.addWidget(self.btnOmniRigLSB)
+        hboxRigCATControl.addWidget(self.btnOmniRigUSB)
+        hboxRigCATControl.addStretch(1)
 
-        grid2 = QGridLayout()
-        grid2.setSpacing(3)
-        grid2.addWidget(self.labelRigName, 1, 0)
-        grid2.addLayout(hboxRigModeSetup, 1, 1)
+        hboxMainLayout = QHBoxLayout()
+        hboxMainLayout.addWidget(self.lcdTrxFrequency)
+        hboxMainLayout.addLayout(hboxMiddlePanel)
 
         self.vboxMainLayout = QVBoxLayout()
-        self.vboxMainLayout.addLayout(grid)
-        self.vboxMainLayout.addLayout(grid2)
+        self.vboxMainLayout.addWidget(self.rigSelectGroupBox)
+        self.vboxMainLayout.addLayout(hboxMainLayout)
+        self.vboxMainLayout.addLayout(hboxRigCATControl)
 
     def setOmnirigObject(self, omnirigObject):
         self.omnirigObject = omnirigObject
@@ -116,15 +130,22 @@ class OmniRigQTControls:
         if self.radioBtnTRX1.isChecked():
             rignum = '1'
         if len(self.omniRigInfo) > 1:
-            self.setDisplayFreq(self.addDotsToFreq(self.omniRigInfo[rignum].getRigFreq()))
-            self.setRigStatus(self.omniRigInfo[rignum].getRigType() + ": " + self.omniRigInfo[rignum].getRigStatus())
+            self.radioBtnTRX1.setText(self.omniRigInfo['1'].getRigType())
+            self.radioBtnTRX2.setText(self.omniRigInfo['2'].getRigType())
+            freqTxt = self.omniRigInfo[rignum].getRigFreq()
+            self.setDisplayFreq(self.addDotsToFreq(freqTxt))
+            self.setRigStatus(self.omniRigInfo[rignum].getRigStatus())
 
-        if self.omniRigInfo[rignum].getRigMode() == 'LSB':
-            self.labelRigModeUSB.setEnabled(False)
-            self.labelRigModeLSB.setEnabled(True)
-        else:
-            self.labelRigModeUSB.setEnabled(True)
-            self.labelRigModeLSB.setEnabled(False)
+            if freqTxt == 0:
+                self.labelRigModeUSB.setEnabled(False)
+                self.labelRigModeLSB.setEnabled(False)
+            else:
+                if self.omniRigInfo[rignum].getRigMode() == 'LSB':
+                    self.labelRigModeUSB.setEnabled(False)
+                    self.labelRigModeLSB.setEnabled(True)
+                else:
+                    self.labelRigModeUSB.setEnabled(True)
+                    self.labelRigModeLSB.setEnabled(False)
 
     def setRigInformation(self, omniRigInfo):
         self.omniRigInfo = omniRigInfo
@@ -134,6 +155,7 @@ class OmniRigQTControls:
         freqTxt = str(freqvalue)
         if len(freqTxt) < 6:
             freqTxt = '00000000'
+
         firstPart = freqTxt[:-6]
         if len(freqTxt) == 8:
             mainPart = freqTxt[:7]

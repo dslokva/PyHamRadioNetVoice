@@ -85,6 +85,7 @@ class MainWindow(QWidget):
 
         self.labelClientStatus = QLabel('Client is stopped')
         self.labelClientStatus.setPalette(self.redColorPalette)
+        self.labelClientStatus.setWordWrap(True)
 
         self.labelOutput = QLabel('Output device: ')
         self.comboBoxOutput = QComboBox(self)

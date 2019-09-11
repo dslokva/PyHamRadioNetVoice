@@ -77,6 +77,7 @@ class MainWindow(QWidget):
         self.sliderVolume.valueChanged.connect(self.volumeChangeEvent)
 
         self.labelServerStatus = QLabel('Server is stopped')
+        self.labelServerStatus.setWordWrap(True)
 
         self.labelInput = QLabel('Input device:')
         self.comboBoxInput = QComboBox(self)
@@ -115,8 +116,6 @@ class MainWindow(QWidget):
 
         grid.addWidget(QLabel(''), 11, 0)
 
-        grid.addLayout(self.omniRigQTpanel.getGUI(), 12, 0, 1, 6)
-
         hbox = QHBoxLayout()
         hbox.addStretch(1)
         hbox.addWidget(self.labelSrvPort)
@@ -126,11 +125,12 @@ class MainWindow(QWidget):
 
         vbox = QVBoxLayout()
         vbox.addLayout(grid)
+        vbox.addLayout(self.omniRigQTpanel.getGUI())
         vbox.addStretch(1)
         vbox.addLayout(hbox)
 
         self.setLayout(vbox)
-        self.setMinimumSize(460, 420)
+        self.setMinimumSize(460, 490)
         self.show()
 
     def populateDeviceList(self):
