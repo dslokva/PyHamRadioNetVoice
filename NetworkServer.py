@@ -11,6 +11,7 @@ class NetworkServer:
         self.port = 9518
         self.isServerActive = False
         self.transcoder = None
+        self.omniRigQTpanel = None
         self.TCPclients = {}
         self.clientsCountLabel = QLabel()
         self.serverStatusLabel = QLabel()
@@ -129,6 +130,19 @@ class NetworkServer:
                         self.removeTCPClient(str(address[0]))
                         self.transcoder.removeUDPClient(str(address[0]))
                         self.updateClientCount()
+
+                    if clienttext.find("setUSB=1", 0, len(clienttext)) != -1:
+                        self.omniRigQTpanel.btnOmniUSBClick()
+                        pass
+
+                    if clienttext.find("setLSB=1", 0, len(clienttext)) != -1:
+                        self.omniRigQTpanel.btnOmniLSBClick()
+                        pass
+
+                    if clienttext.find("+500=1", 0, len(clienttext)) != -1:
+                        self.omniRigQTpanel.btnOmniRigPlus500HzClick()
+                        pass
+
                 else:
                     self.transcoder.removeUDPClient(str(address[0]))
                     self.updateClientCount()
@@ -136,6 +150,10 @@ class NetworkServer:
 
             except socket.error as msg:
                 print("Client socket exception: %s\n" % msg)
+                self.transcoder.removeUDPClient(str(address[0]))
+                self.updateClientCount()
+                client_tcp_socket.close()
+                break
 
         print("Client", address[0], "TCP listener finished")
 
@@ -146,3 +164,6 @@ class NetworkServer:
 
     def setTranscoder(self, coder):
         self.transcoder = coder
+
+    def setOmniRigQTpanel(self, omniRigQTpanel):
+        self.omniRigQTpanel = omniRigQTpanel

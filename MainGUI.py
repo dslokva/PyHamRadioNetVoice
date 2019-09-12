@@ -28,10 +28,10 @@ class MainWindow(QWidget):
         self.devicesOut = None
         self.populateDeviceList()
         self.omniRigClientImpl = OmniRigClient(self.omniRigQTpanel, self.rigsInfoChangeEvent)
-        self.omniRigQTpanel.setOmnirigObject(self.omniRigClientImpl.getOmniRigObject())
 
         self.networkServer = NetworkServer()
         self.networkServer.setTranscoder(audioTranscoder)
+        self.networkServer.setOmniRigQTpanel(self.omniRigQTpanel)
         self.networkServer.setClientCountLabel(self.labelClientsCount)
         self.networkServer.setServerStatusLabel(self.labelServerStatus)
         self.networkServer.setEncodedDataCountLabel(self.labelEncodedDataCount)

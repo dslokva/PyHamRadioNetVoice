@@ -1,6 +1,8 @@
 import re
+import time
 
 import netifaces as netifaces
+from PyQt5 import QtWidgets
 from PyQt5.uic.properties import QtGui
 
 from RigParams import RigParams
@@ -24,7 +26,8 @@ from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget, QHBoxLayout, 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.omniRigQTpanel = OmniRigQTControls(True)
+        self.omniRigQTpanel = OmniRigQTControls(True, self.sendCommandToSrever)
+        self.commandForServer = ''
         self.initUI()
         self.windowCenter()
         self.devicesOut = None
@@ -43,14 +46,14 @@ class MainWindow(QWidget):
         if index >= 0:
             self.comboBoxClientIPAddr.setCurrentIndex(index)
 
-
     def initUI(self):
         self.redColorPalette = QPalette()
         self.greenColorPalette = QPalette()
         self.redColorPalette.setColor(QPalette.WindowText, QColor("red"))
         self.greenColorPalette.setColor(QPalette.WindowText, QColor("green"))
 
-        self.setGeometry(0, 0, 450, 250)
+        self.setGeometry(0, 0, 430, 250)
+        self.setMinimumWidth(400)
         self.setWindowTitle('Voice Transcoder client v 0.1')
         self.startStopBtn = QPushButton("Connect and play", self)
         self.startStopBtn.clicked.connect(self.startStopBtnClick)
@@ -90,6 +93,10 @@ class MainWindow(QWidget):
         self.labelOutput = QLabel('Output device: ')
         self.comboBoxOutput = QComboBox(self)
 
+        label = QLabel()
+        label.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Plain)
+        label.setLineWidth(1)
+
         grid = QGridLayout()
         grid.setSpacing(6)
 
@@ -118,17 +125,24 @@ class MainWindow(QWidget):
         grid.addWidget(QLabel(''), 8, 0)
 
         grid.addWidget(self.labelClientStatus, 9, 0, 1, 4)
+        grid.addWidget(label, 10, 0, 1, 6)
 
-        grid.addLayout(self.omniRigQTpanel.getGUI(), 10, 0, 1, 6)
+        grid.addLayout(self.omniRigQTpanel.getGUI(), 11, 0, 1, 6)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
         hbox.addWidget(self.startStopBtn)
         hbox.addWidget(exitButton)
 
+        label2 = QLabel()
+        label2.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Plain)
+        label2.setLineWidth(1)
+
         vbox = QVBoxLayout()
+
         vbox.addLayout(grid)
         vbox.addStretch(1)
+        vbox.addWidget(label2)
         vbox.addLayout(hbox)
 
         self.setLayout(vbox)
@@ -225,7 +239,6 @@ class MainWindow(QWidget):
             # Create a socket connection for connecting to the server:
             self.clientTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.clientTCPSocket.connect((address, port))
-
             # send hello to server
             initialHello = socket.gethostname() + ('type=hello|version=1.0')
             self.clientTCPSocket.send(initialHello.encode())
@@ -288,6 +301,7 @@ class MainWindow(QWidget):
                     self.rig2.setRigMode(m.group(7))
 
                     self.omniRigQTpanel.setRigInformation(self.omniRigInfo)
+
             except socket.error as msg:
                 print(msg)
                 audioPlayer.stopRecvAndAudio()
@@ -300,6 +314,11 @@ class MainWindow(QWidget):
             if value == searchText:
                 return key
         return -1
+
+    def sendCommandToSrever(self, command):
+        if len(command) > 0:
+            self.clientTCPSocket.send(command.encode())
+            command = ''
 
 class StreamAudioPlayer():
     def __init__(self, codecBitrate):

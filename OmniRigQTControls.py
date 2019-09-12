@@ -1,14 +1,16 @@
+import pythoncom
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPalette, QColor, QFont
 from PyQt5.QtWidgets import QLabel, QGroupBox, QRadioButton, QHBoxLayout, QLCDNumber, QVBoxLayout, QGridLayout, \
     QPushButton
-
+import win32com.client as win32
 
 class OmniRigQTControls:
-    def __init__(self, operatingAsClient):
+    def __init__(self, operatingAsClient, sendCommandFunction=None):
         self.operatingAsClient = operatingAsClient
         self.omnirigObject = None
         self.omniRigInfo = {}
+        self.sendCommandFunction = sendCommandFunction
         self.blackColorPalette = QPalette()
         self.blackColorPalette.setColor(QPalette.WindowText, QColor("black"))
         self.redColorPalette = QPalette()
@@ -64,6 +66,7 @@ class OmniRigQTControls:
 
         self.btnForward500Hz = QPushButton("-->")
         self.btnForward500Hz.setFixedWidth(50)
+        self.btnForward500Hz.clicked.connect(self.btnOmniRigPlus500HzClick)
 
         self.btnOmniRigUSB = QPushButton("USB")
         self.btnOmniRigUSB.clicked.connect(self.btnOmniUSBClick)
@@ -88,24 +91,51 @@ class OmniRigQTControls:
         self.vboxMainLayout = QVBoxLayout()
         self.vboxMainLayout.addWidget(self.rigSelectGroupBox)
         self.vboxMainLayout.addLayout(hboxMainLayout)
-        self.vboxMainLayout.addLayout(hboxRigCATControl)
+        if self.operatingAsClient is True:
+            self.vboxMainLayout.addLayout(hboxRigCATControl)
 
     def setOmnirigObject(self, omnirigObject):
         self.omnirigObject = omnirigObject
 
+    def btnOmniRigPlus500HzClick(self):
+        try:
+            self.omnirigObject = win32.Dispatch("OmniRig.OmniRigX")
+        except:
+            pass
+        if self.omnirigObject is not None and self.operatingAsClient is False:
+            if self.radioBtnTRX1.isChecked():
+                self.omnirigObject.Rig1.SetSimplexMode(str(self.omnirigObject.Rig1.Freq+500))
+            else:
+                self.omnirigObject.Rig2.SetSimplexMode(str(self.omnirigObject.Rig1.Freq+500))
+        if self.operatingAsClient is True and self.sendCommandFunction is not None:
+            self.sendCommandFunction('+500=1')
+
     def btnOmniLSBClick(self):
-        if self.omnirigObject is not None:
+        try:
+            self.omnirigObject = win32.Dispatch("OmniRig.OmniRigX")
+        except:
+            pass
+        if self.omnirigObject is not None and self.operatingAsClient is False:
             if self.radioBtnTRX1.isChecked():
                 self.omnirigObject.Rig1.Mode = '67108864'
             else:
                 self.omnirigObject.Rig2.Mode = '67108864'
+        if self.operatingAsClient is True and self.sendCommandFunction is not None:
+            self.sendCommandFunction('setLSB=1')
 
     def btnOmniUSBClick(self):
-        if self.omnirigObject is not None:
+        try:
+            self.omnirigObject = win32.Dispatch("OmniRig.OmniRigX")
+        except:
+            pass
+        if self.omnirigObject is not None and self.operatingAsClient is False:
             if self.radioBtnTRX1.isChecked():
                 self.omnirigObject.Rig1.Mode = '33554432'
             else:
                 self.omnirigObject.Rig2.Mode = '33554432'
+
+        if self.operatingAsClient is True and self.sendCommandFunction is not None:
+            self.sendCommandFunction('setUSB=1')
 
     def setDisplayFreq(self, txtFreq):
         self.lcdTrxFrequency.display(txtFreq)

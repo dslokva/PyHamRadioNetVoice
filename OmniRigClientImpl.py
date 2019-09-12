@@ -1,3 +1,4 @@
+import pythoncom
 import win32com.client as win32
 from RigParams import RigParams
 
@@ -15,6 +16,7 @@ class OmniRigClient:
         guiQtPanel = guiPanel
         changeEventFunction = changeEventFunc
         try:
+            pythoncom.CoInitialize()
             omnirigObject = win32.gencache.EnsureDispatch('OmniRig.OmniRigX')
             self.omniRigActive = True
         except:
